@@ -88,12 +88,17 @@ freeze-vscode-extensions: ## Update Visual Studio Code extensions
 	@echo "Freezing Visual Studio Code extensions..."
 	@code --list-extensions > .vscode/extensions.txt
 
+install-docker: ## Install Docker
+	@echo "Installing Docker..."
+	@bash scripts/install-docker.sh
+
 install-all:  ## Install all dependencies and set up the environment
 	@$(MAKE) install-pipx
 	@$(MAKE) install-python-wsl
 	@$(MAKE) install-poetry
 	@$(MAKE) install-deps
 	@$(MAKE) install-vscode-extensions
+	@$(MAKE) install-docker
 	@$(MAKE) _venv
 	@$(MAKE) venv-activate-and-poetry-use-install
 	@echo "All dependencies installed successfully!"

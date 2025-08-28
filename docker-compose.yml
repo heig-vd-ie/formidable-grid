@@ -1,0 +1,13 @@
+services:
+  gridlabd:
+    build:
+      context: ./gridlabd
+    container_name: gridlabd
+    volumes:
+      - ./gridlabd:/app/gridlabd
+    environment:
+      - SERVER_PORT=${GRIDLABD_PORT:-4500}
+    ports:
+      - "${GRIDLABD_PORT:-4500}:4500"
+    stdin_open: true
+    tty: true
