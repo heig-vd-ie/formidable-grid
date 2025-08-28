@@ -4,7 +4,7 @@ services:
       context: ./gridlabd
     container_name: gridlabd
     volumes:
-      - ./gridlabd:/app/gridlabd
+      - ./gridlabd:/home/griduser/gridlabd
     environment:
       - SERVER_PORT=${GRIDLABD_PORT:-4500}
     ports:

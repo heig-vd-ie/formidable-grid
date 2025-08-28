@@ -1,24 +1,21 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
-# Install build dependencies
+ENV GRIDLABD_INSTALL_DIR=/opt/gridlabd
+ENV PATH="${GRIDLABD_INSTALL_DIR}/bin:${PATH}"
+
+# Install dependencies for .deb packages
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-        build-essential git cmake \
-        autoconf automake libtool \
-        libxerces-c-dev libxml2-dev \
-        libboost-all-dev libreadline-dev \
-        python3 python3-pip && \
-    apt-get clean
+        libncurses6 libtinfo6 python3 python3-pip bash wget gdebi-core && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+  
+# Copy the .deb file into Docker
+COPY GridLAB-D-5.3.0-Linux.deb /tmp/gridlabd.deb
 
-# Build and install GridLAB-D from source
-RUN git clone --recursive https://github.com/gridlab-d/gridlab-d.git /opt/gridlab-d && \
-    cd /opt/gridlab-d && \
-    git submodule update --init && \
-    mkdir cmake-build && \
-    cd cmake-build && \
-    cmake .. && \
-    make -j$(nproc) && \
-    make install
+# Install the .deb
+RUN gdebi -n /tmp/gridlabd.deb && rm /tmp/gridlabd.deb
+
+# RUN git clone --recursive --depth 1 https://github.com/gridlab-d/tools.git /app/tools
 
 WORKDIR /app
 CMD ["bash"]
