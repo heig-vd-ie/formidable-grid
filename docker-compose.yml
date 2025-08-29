@@ -1,13 +1,22 @@
 services:
   backend-arras:
     build:
-      context: ./backend-arras
+      context: .
+      dockerfile: backend-arras/Dockerfile
     container_name: backend-arras
     volumes:
       - ./.cache/arras:/app/models
+    stdin_open: true
+    tty: true
+  backend-arras-api:
+    build:
+      context: .
+      dockerfile: backend-arras-api/Dockerfile
+    container_name: backend-arras-api
     environment:
-      - SERVER_PORT=${BACKEND_ARRAS_PORT:-4500}
+      - SERVER_PORT=${BACKEND_ARRAS_API_PORT:-4600}
+      - BACKEND_ARRAS_URL=http://backend-arras:${BACKEND_ARRAS_PORT:-4500}
     ports:
-      - "${BACKEND_ARRAS_PORT:-4500}:4500"
+      - "${BACKEND_ARRAS_API_PORT:-4600}:4600"
     stdin_open: true
     tty: true

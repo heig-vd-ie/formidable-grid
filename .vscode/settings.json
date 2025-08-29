@@ -51,4 +51,6 @@
     "editor.defaultFormatter": "GamemodeOne.json-compact-prettier",
     "editor.formatOnSave": true
   },
+  "python.defaultInterpreterPath": ".venv/bin/python",
+  "python.terminal.activateEnvironment": true
 }
