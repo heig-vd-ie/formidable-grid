@@ -3,6 +3,9 @@ include Makefile.common.mak
 
 COMPOSE_FILE ?= docker-compose.yml
 
+fetch-images: ## Fetch the Docker images
+	@. ./scripts/fetch-images.sh
+
 build: ## Build the Docker images
 	docker compose -f $(COMPOSE_FILE) build
 

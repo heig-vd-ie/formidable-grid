@@ -1,13 +1,13 @@
 services:
-  arras-energy:
+  backend-arras:
     build:
-      context: ./arras-energy
-    container_name: arras-energy
+      context: ./backend-arras
+    container_name: backend-arras
     volumes:
-      - ./arras-energy/models:/app/models
+      - ./.cache/arras:/app/models
     environment:
-      - SERVER_PORT=${ARRAS_ENERGY_PORT:-4500}
+      - SERVER_PORT=${BACKEND_ARRAS_PORT:-4500}
     ports:
-      - "${ARRAS_ENERGY_PORT:-4500}:4500"
+      - "${BACKEND_ARRAS_PORT:-4500}:4500"
     stdin_open: true
     tty: true
