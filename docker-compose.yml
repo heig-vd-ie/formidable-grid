@@ -1,13 +1,13 @@
 services:
-  gridlabd:
+  arras-energy:
     build:
-      context: ./gridlabd
-    container_name: gridlabd
+      context: ./arras-energy
+    container_name: arras-energy
     volumes:
-      - ./gridlabd:/home/griduser/gridlabd
+      - ./arras-energy/models:/app/models
     environment:
-      - SERVER_PORT=${GRIDLABD_PORT:-4500}
+      - SERVER_PORT=${ARRAS_ENERGY_PORT:-4500}
     ports:
-      - "${GRIDLABD_PORT:-4500}:4500"
+      - "${ARRAS_ENERGY_PORT:-4500}:4500"
     stdin_open: true
     tty: true

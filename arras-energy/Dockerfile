@@ -1,0 +1,1 @@
+FROM lfenergy/arras:latest
