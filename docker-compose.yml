@@ -1,15 +1,15 @@
 services:
-  backend-arras:
+  backend-gridlabd:
     build:
       context: .
-      dockerfile: backend-arras/Dockerfile
-    container_name: backend-arras
+      dockerfile: backend-gridlabd/Dockerfile
+    container_name: backend-gridlabd
     environment:
-      - SERVER_PORT=${BACKEND_ARRAS_PORT}
+      - SERVER_PORT=${BACKEND_GRIDLABD_PORT}
       - GRIDLABD_DIR_DOCKER=${GRIDLABD_DIR_DOCKER}
       - GRIDLABD_DIR_NATIVE=${GRIDLABD_DIR_NATIVE}
     volumes:
       - ./${GRIDLABD_DIR_NATIVE}:${GRIDLABD_DIR_DOCKER}
     ports:
-      - ${BACKEND_ARRAS_PORT}:${BACKEND_ARRAS_PORT}
+      - ${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}
     user: root

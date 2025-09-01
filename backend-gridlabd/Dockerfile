@@ -19,7 +19,7 @@ RUN pipx install "poetry==$POETRY_VERSION" \
 COPY pyproject.toml poetry.lock /app/
 RUN poetry install --extras "internal"
 
-COPY backend-arras/main.py /app/src/
+COPY backend-gridlabd/main.py /app/src/
 
 RUN mkdir -p /app/models && chown -R 1000:1000 /app/models
 

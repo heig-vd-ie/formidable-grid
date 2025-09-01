@@ -11,7 +11,7 @@ GRIDLABD_DIR_DOCKER = Path(os.getenv("GRIDLABD_DIR_DOCKER", ""))
 
 @api.get("/")
 def hello():
-    return {"message": "Welcome from arras APIs!"}
+    return {"message": "Welcome from GridLabD APIs!"}
 
 
 @api.patch("/run")

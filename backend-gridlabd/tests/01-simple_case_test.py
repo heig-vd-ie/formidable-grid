@@ -5,7 +5,7 @@ from pathlib import Path
 import requests
 
 OUTPUT_FOLDER = Path(__file__).parent.parent.parent / ".cache/tests"
-url = f"http://localhost:{os.getenv('BACKEND_ARRAS_PORT', 4600)}"
+url = f"http://localhost:{os.getenv('BACKEND_GRIDLABD_PORT', 4600)}"
 
 
 @pytest.fixture(autouse=True)
