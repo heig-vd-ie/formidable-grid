@@ -15,7 +15,7 @@ def hello():
 
 
 @api.patch("/run")
-async def run_gridlabd(file: UploadFile = File(...)):
+async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
     try:
         if file.filename is None:
             raise HTTPException(status_code=400, detail="No file uploaded")
@@ -29,6 +29,8 @@ async def run_gridlabd(file: UploadFile = File(...)):
             [
                 "gridlabd",
                 str(file_path_docker),
+                "-D",
+                "randomseed={}".format(randomseed),
             ],
             cwd=GRIDLABD_DIR_DOCKER,
             capture_output=True,
