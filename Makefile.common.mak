@@ -113,7 +113,7 @@ run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwis
 	@if [ -n "$(file)" ]; then \
 		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
 	else \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest tests/ -v;\
+		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest **/tests -v;\
 	fi
 
 format-julia:  ## Format Julia code in the src directory

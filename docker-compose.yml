@@ -12,5 +12,4 @@ services:
       - ./${GRIDLABD_DIR_NATIVE}:${GRIDLABD_DIR_DOCKER}
     ports:
       - ${BACKEND_ARRAS_PORT}:${BACKEND_ARRAS_PORT}
-    stdin_open: true
-    tty: true
+    user: root

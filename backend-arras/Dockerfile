@@ -21,7 +21,7 @@ RUN poetry install --extras "internal"
 
 COPY backend-arras/main.py /app/src/
 
-RUN mkdir -p /app/models
+RUN mkdir -p /app/models && chown -R 1000:1000 /app/models
 
 EXPOSE ${SERVER_PORT}
 
