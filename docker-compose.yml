@@ -4,20 +4,13 @@ services:
       context: .
       dockerfile: backend-arras/Dockerfile
     container_name: backend-arras
-    volumes:
-      - ./.cache/arras:/app/models
-    stdin_open: true
-    tty: true
-  backend-arras-api:
-    build:
-      context: .
-      dockerfile: backend-arras-api/Dockerfile
-    container_name: backend-arras-api
     environment:
-      - SERVER_PORT=${BACKEND_ARRAS_API_PORT:-4600}
-      - BACKEND_ARRAS_URL=http://backend-arras:${BACKEND_ARRAS_PORT:-4500}
-      - BACKEND_ARRAS_SERVICE=${BACKEND_ARRAS_SERVICE:-backend-arras}
+      - SERVER_PORT=${BACKEND_ARRAS_PORT}
+      - GRIDLABD_DIR_DOCKER=${GRIDLABD_DIR_DOCKER}
+      - GRIDLABD_DIR_NATIVE=${GRIDLABD_DIR_NATIVE}
+    volumes:
+      - ./${GRIDLABD_DIR_NATIVE}:${GRIDLABD_DIR_DOCKER}
     ports:
-      - "${BACKEND_ARRAS_API_PORT:-4600}:4600"
+      - ${BACKEND_ARRAS_PORT}:${BACKEND_ARRAS_PORT}
     stdin_open: true
     tty: true
