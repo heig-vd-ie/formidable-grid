@@ -16,6 +16,7 @@ services:
     environment:
       - SERVER_PORT=${BACKEND_ARRAS_API_PORT:-4600}
       - BACKEND_ARRAS_URL=http://backend-arras:${BACKEND_ARRAS_PORT:-4500}
+      - BACKEND_ARRAS_SERVICE=${BACKEND_ARRAS_SERVICE:-backend-arras}
     ports:
       - "${BACKEND_ARRAS_API_PORT:-4600}:4600"
     stdin_open: true
