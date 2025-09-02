@@ -1,4 +1,3 @@
-// JAC - jdechalendar@stanford.edu
 
 var width = 960,
     height = 760;

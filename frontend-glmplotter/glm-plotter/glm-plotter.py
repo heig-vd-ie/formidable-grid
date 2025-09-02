@@ -1,7 +1,3 @@
-"""
-JAC - jdechalendar@stanford.edu
-"""
-
 from flask import Flask, render_template, request, session, jsonify
 import os
 import json

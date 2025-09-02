@@ -1,7 +1,3 @@
-"""
-JAC - jdechalendar@stanford.edu
-"""
-
 import pandas as pd
 import re
 
