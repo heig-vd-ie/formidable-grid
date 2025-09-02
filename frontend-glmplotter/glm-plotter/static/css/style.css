@@ -1,3 +1,20 @@
+/* CSS Variables for consistent colors */
+:root {
+  /* Link/Line colors */
+  --color-overhead-line: rgb(211,211,211);
+  --color-underground-line: rgb(211,211,211);
+  --color-switch: rgb(100,100,100);
+  --color-regulator: rgb(70,70,70);
+  --color-transformer: rgb(255,169,44);
+  
+  /* Node colors */
+  --color-load: rgb(69, 179, 255);
+  --color-capacitor: rgb(31, 119, 180);
+  --color-meter: rgb(44, 160, 44);
+  --color-diesel-dg: rgb(255,169,44);
+  --color-node: rgb(174, 199, 232);
+}
+
 /* General formatting */
 .col {
   width: 960px;
@@ -123,27 +140,19 @@
   font-size:15px;
 }
 circle.load {
-  fill:rgb(31, 119, 180);
-  fill:rgb(174, 199, 232);
-  fill:rgb(69, 179, 255);
+  fill: var(--color-load);
 }
 .node.load.capacitor circle {
-  fill:rgb(140, 86, 75);
-  fill:rgb(31, 119, 180);
+  fill: var(--color-capacitor);
 }
 circle.node {
-  fill:rgb(174, 199, 232);
-  fill:#999;
-  fill:#d3d3d3;
+  fill: var(--color-node);
 }
 .node.diesel_dg circle {
-  fill:rgb(148, 103, 189);
-  fill:rgb(204,204,0);
-  fill:rgb(255,169,44);
+  fill: var(--color-diesel-dg);
 }
 circle.meter {
-  fill:rgb(44, 160, 44);
-  fill:rgb(178, 106, 0);
+  fill: var(--color-meter);
 }
 .highlight {
 	fill: #FF0000;
@@ -175,25 +184,22 @@ circle.meter {
   stroke-width: 3px;
 }
 .link.overhead_line {
-    stroke: #999999;
-    stroke:rgb(211,211,211);
+    stroke: var(--color-overhead-line);
 }
 .link.underground_line {
-    stroke: rgb(211,211,211);
+    stroke: var(--color-underground-line);
     stroke-dasharray: 5,2;
 }
 .link.switch {
-    stroke: #000000;
-    stroke:rgb(100,100,100);
+    stroke: var(--color-switch);
     stroke-dasharray: 10,10;
 }
 .link.regulator {
-    stroke: #0000FF;
-    stroke:rgb(70,70,70);
+    stroke: var(--color-regulator);
     stroke-width: 5px;
 }
 .link.transformer {
-    stroke:rgb(255,169,44);
+    stroke: var(--color-transformer);
     stroke-width: 8px;
 }
 .link text {

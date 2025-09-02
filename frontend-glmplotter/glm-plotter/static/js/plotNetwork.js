@@ -1,6 +1,17 @@
 
-var width = 960,
-    height = 760;
+// Get dynamic dimensions from the container
+function getDimensions() {
+    const container = document.getElementById('main');
+    const containerRect = container.getBoundingClientRect();
+    return {
+        width: Math.max(containerRect.width - 20, 400), // Leave some padding
+        height: Math.max(containerRect.height - 20, 300) // Leave some padding
+    };
+}
+
+var dims = getDimensions();
+var width = dims.width,
+    height = dims.height;
 
 var myTitle, svg, container, force, drag, node, link, zoom;
 
@@ -22,6 +33,11 @@ function loadNetworkVisualization() {
     // Clear existing visualization first
     d3.select("#main").selectAll("*").remove();
     
+    // Recalculate dimensions based on current container size
+    var dims = getDimensions();
+    width = dims.width;
+    height = dims.height;
+    
     // Recreate the basic structure
     myTitle = d3.select("#main").append("h1");
     
@@ -29,8 +45,11 @@ function loadNetworkVisualization() {
       .append("div")
         .attr("class", "col")
       .append("svg")
-        .attr("width", width)
-        .attr("height", height);
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("viewBox", "0 0 " + width + " " + height)
+        .attr("preserveAspectRatio", "xMidYMid meet")
+        .style("background-color", "transparent");
 
     container = svg.append("g");
     

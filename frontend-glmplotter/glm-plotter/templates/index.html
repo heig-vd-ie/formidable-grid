@@ -7,8 +7,25 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="static/lib/js/d3.js"></script>
+    <link rel="stylesheet" href="static/css/style.css">
     <style>
-        /* Keep existing D3.js visualization styles with exact color codes */
+        /* CSS Variables for consistent colors */
+        :root {
+          /* Link/Line colors */
+          --color-overhead-line: rgb(211,211,211);
+          --color-underground-line: rgb(211,211,211);
+          --color-switch: rgb(100,100,100);
+          --color-regulator: rgb(70,70,70);
+          --color-transformer: rgb(255,169,44);
+          
+          /* Node colors */
+          --color-load: rgb(69, 179, 255);
+          --color-capacitor: rgb(31, 119, 180);
+          --color-meter: rgb(44, 160, 44);
+          --color-diesel-dg: rgb(255,169,44);
+          --color-node: rgb(174, 199, 232);
+        }
+        /* Keep existing D3.js visualization styles using CSS variables */
         .node {
             stroke: #fff;
             stroke-width: 2.5px;
@@ -20,38 +37,28 @@
             font-size: 15px;
         }
         circle.load {
-            fill: rgb(31, 119, 180);
-            fill: rgb(174, 199, 232);
-            fill: rgb(69, 179, 255);
+            fill: var(--color-load);
         }
         .node.load.capacitor circle {
-            fill: rgb(140, 86, 75);
-            fill: rgb(31, 119, 180);
+            fill: var(--color-capacitor);
         }
         circle.node {
-            fill: rgb(174, 199, 232);
-            fill: #999;
-            fill: #d3d3d3;
+            fill: var(--color-node);
         }
         .node.diesel_dg circle {
-            fill: rgb(148, 103, 189);
-            fill: rgb(204, 204, 0);
-            fill: rgb(255, 169, 44);
+            fill: var(--color-diesel-dg);
         }
         circle.meter {
-            fill: rgb(44, 160, 44);
-            fill: rgb(178, 106, 0);
+            fill: var(--color-meter);
         }
         .highlight {
             fill: #FF0000;
             font-weight: bold;
         }
         .node:hover circle {
-            fill: #000;
             fill: #FF0000;
         }
         .node.load.capacitor:hover circle {
-            fill: #000;
             fill: #FF0000;
         }
         .node g {
@@ -63,32 +70,29 @@
             display: inline;
         }
         
-        /* Link styles with exact colors */
+        /* Link styles using CSS variables */
         .link {
             stroke: #999;
             stroke-opacity: .8;
             stroke-width: 3px;
         }
         .link.overhead_line {
-            stroke: #999999;
-            stroke: rgb(211, 211, 211);
+            stroke: var(--color-overhead-line);
         }
         .link.underground_line {
-            stroke: rgb(211, 211, 211);
+            stroke: var(--color-underground-line);
             stroke-dasharray: 5,2;
         }
         .link.switch {
-            stroke: #000000;
-            stroke: rgb(100, 100, 100);
+            stroke: var(--color-switch);
             stroke-dasharray: 10,10;
         }
         .link.regulator {
-            stroke: #0000FF;
-            stroke: rgb(70, 70, 70);
+            stroke: var(--color-regulator);
             stroke-width: 5px;
         }
         .link.transformer {
-            stroke: rgb(255, 169, 44);
+            stroke: var(--color-transformer);
             stroke-width: 8px;
         }
         .link text {
@@ -109,18 +113,67 @@
             display: flex;
             align-items: center;
             margin-right: 1rem;
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+            padding: 2px 4px;
+            border-radius: 3px;
+            transition: background-color 0.2s ease;
+        }
+        .legend-item:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        .legend-item.disabled {
+            opacity: 0.4;
+            background-color: rgba(255, 0, 0, 0.1);
         }
         .legend-color {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 3px;
             border: 1px solid #ccc;
             margin-right: 0.5rem;
+            transition: opacity 0.2s ease;
         }
-        .legend-overhead { background-color: rgb(211, 211, 211); }
-        .legend-underground { background-color: rgb(211, 211, 211); }
-        .legend-switch { background-color: rgb(100, 100, 100); }
-        .legend-regulator { background-color: rgb(70, 70, 70); }
-        .legend-transformer { background-color: rgb(255, 169, 44); }
+        .legend-color.circle {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .legend-color.dashed {
+            border-style: dashed;
+        }
+        
+        /* Line legend colors - using CSS variables from style.css */
+        .legend-overhead { background-color: var(--color-overhead-line); }
+        .legend-underground { background-color: var(--color-underground-line); }
+        .legend-switch { background-color: var(--color-switch); }
+        .legend-regulator { background-color: var(--color-regulator); height: 4px; }
+        .legend-transformer { background-color: var(--color-transformer); height: 6px; }
+        
+        /* Node legend colors - using CSS variables from style.css */
+        .legend-load { background-color: var(--color-load); }
+        .legend-capacitor { background-color: var(--color-capacitor); }
+        .legend-meter { background-color: var(--color-meter); }
+        .legend-diesel { background-color: var(--color-diesel-dg); }
+        .legend-node { background-color: var(--color-node); }
+        
+        /* Visualization container styles */
+        #main {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        #main .col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        #main svg {
+            flex: 1;
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen overflow-x-hidden">
@@ -317,32 +370,61 @@
                     </div>
                     
                     <!-- Legend -->
-                    <div class="flex flex-wrap items-center mb-1 text-xs flex-shrink-0" x-show="visualizationLoaded">
-                        <span class="font-medium text-gray-700 mr-2">Legend:</span>
-                        <div class="legend-item">
-                            <div class="legend-color legend-overhead"></div>
-                            <span>Overhead</span>
+                    <div class="flex flex-wrap items-start mb-1 text-xs flex-shrink-0" x-show="visualizationLoaded">
+                        <div class="mr-4">
+                            <span class="font-medium text-gray-700 block mb-1">Lines (click to toggle):</span>
+                            <div class="flex flex-wrap">
+                                <div class="legend-item" @click="toggleLegendItem('link', 'overhead_line')" :class="{'disabled': legendFilters.links.overhead_line === false}">
+                                    <div class="legend-color legend-overhead"></div>
+                                    <span>Overhead</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('link', 'underground_line')" :class="{'disabled': legendFilters.links.underground_line === false}">
+                                    <div class="legend-color legend-underground dashed"></div>
+                                    <span>Underground</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('link', 'switch')" :class="{'disabled': legendFilters.links.switch === false}">
+                                    <div class="legend-color legend-switch dashed"></div>
+                                    <span>Switch</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('link', 'regulator')" :class="{'disabled': legendFilters.links.regulator === false}">
+                                    <div class="legend-color legend-regulator"></div>
+                                    <span>Regulator</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('link', 'transformer')" :class="{'disabled': legendFilters.links.transformer === false}">
+                                    <div class="legend-color legend-transformer"></div>
+                                    <span>Transformer</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <div class="legend-color legend-underground"></div>
-                            <span>Underground</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color legend-switch"></div>
-                            <span>Switch</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color legend-regulator"></div>
-                            <span>Regulator</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color legend-transformer"></div>
-                            <span>Transformer</span>
+                        <div>
+                            <span class="font-medium text-gray-700 block mb-1">Nodes (click to toggle):</span>
+                            <div class="flex flex-wrap">
+                                <div class="legend-item" @click="toggleLegendItem('node', 'load')" :class="{'disabled': legendFilters.nodes.load === false}">
+                                    <div class="legend-color circle legend-load"></div>
+                                    <span>Load</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('node', 'capacitor')" :class="{'disabled': legendFilters.nodes.capacitor === false}">
+                                    <div class="legend-color circle legend-capacitor"></div>
+                                    <span>Capacitor</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('node', 'meter')" :class="{'disabled': legendFilters.nodes.meter === false}">
+                                    <div class="legend-color circle legend-meter"></div>
+                                    <span>Meter</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('node', 'diesel_dg')" :class="{'disabled': legendFilters.nodes.diesel_dg === false}">
+                                    <div class="legend-color circle legend-diesel"></div>
+                                    <span>Generator</span>
+                                </div>
+                                <div class="legend-item" @click="toggleLegendItem('node', 'node')" :class="{'disabled': legendFilters.nodes.node === false}">
+                                    <div class="legend-color circle legend-node"></div>
+                                    <span>Node</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     
                     <!-- D3.js visualization will be inserted here -->
-                    <div id="main" class="w-full flex-1 overflow-hidden">
+                    <div id="main" class="w-full flex-1 overflow-hidden" style="min-height: 400px;">
                         <div x-show="!visualizationLoaded" class="flex items-center justify-center h-full text-gray-500">
                             <div class="text-center">
                                 <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,6 +459,24 @@
             simulationSuccess: false,
             nodeSearchTerm: '',
             gravityValue: 0.05,
+            
+            // Legend filter state
+            legendFilters: {
+                links: {
+                    overhead_line: true,
+                    underground_line: true,
+                    switch: true,
+                    regulator: true,
+                    transformer: true
+                },
+                nodes: {
+                    load: true,
+                    capacitor: true,
+                    meter: true,
+                    diesel_dg: true,
+                    node: true
+                }
+            },
 
             // Initialize
             init() {
@@ -458,6 +558,8 @@
                     
                     if (result.success) {
                         this.visualizationLoaded = true;
+                        // Reset legend filters when loading new visualization
+                        this.resetLegendFilters();
                         // Load the network visualization
                         if (typeof loadNetworkVisualization === 'function') {
                             setTimeout(() => {
@@ -537,9 +639,66 @@
                 } else {
                     alert('No visualization loaded');
                 }
+            },
+
+            // Legend filtering
+            toggleLegendItem(type, itemType) {
+                if (type === 'link') {
+                    this.legendFilters.links[itemType] = !this.legendFilters.links[itemType];
+                } else if (type === 'node') {
+                    this.legendFilters.nodes[itemType] = !this.legendFilters.nodes[itemType];
+                }
+                this.applyLegendFilters();
+            },
+
+            applyLegendFilters() {
+                if (!this.visualizationLoaded) return;
+                
+                // Filter links
+                Object.keys(this.legendFilters.links).forEach(linkType => {
+                    const isVisible = this.legendFilters.links[linkType];
+                    d3.selectAll('.link.' + linkType)
+                        .style('display', isVisible ? 'block' : 'none');
+                });
+                
+                // Filter nodes
+                Object.keys(this.legendFilters.nodes).forEach(nodeType => {
+                    const isVisible = this.legendFilters.nodes[nodeType];
+                    // Handle different node class combinations
+                    if (nodeType === 'node') {
+                        // Generic nodes (not load, meter, etc.)
+                        d3.selectAll('.node:not(.load):not(.meter):not(.diesel_dg):not(.capacitor)')
+                            .style('display', isVisible ? 'block' : 'none');
+                    } else {
+                        d3.selectAll('.node.' + nodeType)
+                            .style('display', isVisible ? 'block' : 'none');
+                    }
+                });
+            },
+
+            resetLegendFilters() {
+                // Reset all filters to true (show all)
+                Object.keys(this.legendFilters.links).forEach(key => {
+                    this.legendFilters.links[key] = true;
+                });
+                Object.keys(this.legendFilters.nodes).forEach(key => {
+                    this.legendFilters.nodes[key] = true;
+                });
+                this.applyLegendFilters();
             }
         }
     }
+    
+    // Add window resize handler for responsive visualization
+    window.addEventListener('resize', function() {
+        if (window.visualizationLoaded && typeof loadNetworkVisualization === 'function') {
+            // Debounce resize events
+            clearTimeout(window.resizeTimeout);
+            window.resizeTimeout = setTimeout(function() {
+                loadNetworkVisualization();
+            }, 250);
+        }
+    });
     
     // Add hidden inputs for compatibility with existing functions
     document.addEventListener('DOMContentLoaded', function() {
