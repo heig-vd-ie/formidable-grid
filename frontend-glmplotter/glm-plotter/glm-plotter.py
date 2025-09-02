@@ -48,6 +48,150 @@ def index():
     return render_template("index.html")
 
 
+@app.route("/run_simulation", methods=["POST"])
+def run_simulation():
+    """API endpoint for running simulations"""
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "No file uploaded"}), 400
+
+    uploaded_file = request.files["file"]
+
+    if uploaded_file.filename == "":
+        return jsonify({"success": False, "error": "No file selected"}), 400
+
+    if not uploaded_file.filename or not uploaded_file.filename.lower().endswith(
+        ".glm"
+    ):
+        return jsonify({"success": False, "error": "File must be a GLM file"}), 400
+
+    try:
+        # Get randomseed from request or use default
+        randomseed = request.form.get("randomseed", 42)
+
+        # Prepare file for backend
+        files = {
+            "file": (
+                uploaded_file.filename,
+                uploaded_file.stream,
+                "application/octet-stream",
+            )
+        }
+
+        form_data = {"randomseed": randomseed}
+
+        # Call the backend service
+        response = requests.patch(
+            f"{BACKEND_GRIDLABD_URL}/run", files=files, data=form_data
+        )
+
+        if response.status_code == 200:
+            result = response.json()
+
+            # Check if GridLAB-D execution was successful
+            if result["returncode"] == 0:
+                # Look for output files in the cache directory
+                cache_dir = app.config["CACHE_FOLDER"]
+                output_files = []
+
+                if os.path.exists(cache_dir):
+                    for file in os.listdir(cache_dir):
+                        if file.endswith(".glm"):
+                            output_files.append(file)
+
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "GridLAB-D simulation completed successfully",
+                        "output_file": (
+                            output_files[-1] if output_files else "No output file"
+                        ),
+                        "stdout": result["stdout"],
+                        "stderr": result["stderr"],
+                    }
+                )
+            else:
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"GridLAB-D simulation failed: {result['stderr']}",
+                            "stdout": result["stdout"],
+                            "stderr": result["stderr"],
+                        }
+                    ),
+                    400,
+                )
+        else:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Backend service error: {response.text}",
+                    }
+                ),
+                500,
+            )
+
+    except requests.exceptions.ConnectionError:
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Could not connect to backend-gridlabd service",
+                }
+            ),
+            503,
+        )
+    except Exception as e:
+        return jsonify({"success": False, "error": f"Unexpected error: {str(e)}"}), 500
+
+
+@app.route("/load_cache_data", methods=["POST"])
+def load_cache_data():
+    """Load a GLM file from cache for visualization"""
+    data = request.get_json()
+    if not data:
+        return jsonify({"success": False, "error": "No JSON data provided"}), 400
+
+    filename = data.get("filename")
+    if not filename:
+        return jsonify({"success": False, "error": "No filename provided"}), 400
+
+    cache_dir = app.config["CACHE_FOLDER"]
+    file_path = os.path.join(cache_dir, filename)
+
+    if not os.path.isfile(file_path):
+        return (
+            jsonify({"success": False, "error": f"File {filename} not found in cache"}),
+            404,
+        )
+
+    try:
+        # Copy the cache file to current working file
+        import shutil
+
+        current_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+        shutil.copy2(file_path, current_file_path)
+
+        # Update session
+        session["glm_name"] = filename
+        session.pop("csv", None)  # Clear CSV session if any
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Loaded {filename} from cache",
+                "filename": filename,
+            }
+        )
+
+    except Exception as e:
+        return (
+            jsonify({"success": False, "error": f"Error loading file: {str(e)}"}),
+            500,
+        )
+
+
 @app.route("/run_gridlabd", methods=["POST"])
 def run_gridlabd():
     """Run GridLAB-D simulation on the uploaded GLM file"""
