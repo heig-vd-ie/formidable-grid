@@ -13,6 +13,18 @@ services:
     ports:
       - ${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}
     user: root
+  
+  frontend-glmplotter:
+    build:
+      context: .
+      dockerfile: frontend-glmplotter/Dockerfile
+    container_name: frontend-glmplotter
+    environment:
+      - SERVER_PORT=${FRONTEND_GLMPLOTTER_PORT}
+    ports:
+      - "${FRONTEND_GLMPLOTTER_PORT}:${FRONTEND_GLMPLOTTER_PORT}"
+    user: root
+
   frontend-webgme:
     build:
       context: .
