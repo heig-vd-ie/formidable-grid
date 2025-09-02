@@ -32,6 +32,15 @@ function gridLabApp() {
             }
         },
 
+        // Detail modal state
+        showDetailModal: false,
+        selectedNodeDetails: null,
+        showLinkModal: false,
+        selectedLinkDetails: null,
+        showResultsModal: false,
+        simulationResults: null,
+        resultsLoading: false,
+
         // Initialize application
         init() {
             this.loadCacheFiles();
@@ -224,13 +233,149 @@ function gridLabApp() {
         },
 
         resetLegendFilters() {
-            Object.keys(this.legendFilters.links).forEach(key => {
-                this.legendFilters.links[key] = true;
+            // Reset all filters to true
+            Object.keys(this.legendFilters.links).forEach(linkType => {
+                this.legendFilters.links[linkType] = true;
             });
-            Object.keys(this.legendFilters.nodes).forEach(key => {
-                this.legendFilters.nodes[key] = true;
+            Object.keys(this.legendFilters.nodes).forEach(nodeType => {
+                this.legendFilters.nodes[nodeType] = true;
             });
             this.applyLegendFilters();
+        },
+
+        // Detail modal functions
+        showNodeDetails(nodeData) {
+            this.selectedNodeDetails = nodeData;
+            this.showDetailModal = true;
+        },
+
+        closeDetailModal() {
+            this.showDetailModal = false;
+            this.selectedNodeDetails = null;
+        },
+
+        // Link details functions
+        showLinkDetails(linkData) {
+            this.selectedLinkDetails = linkData;
+            this.showLinkModal = true;
+        },
+
+        closeLinkModal() {
+            this.showLinkModal = false;
+            this.selectedLinkDetails = null;
+        },
+
+        async fetchLinkDetails(sourceNode, targetNode, linkType) {
+            try {
+                const response = await fetch('/get_link_details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        source: sourceNode, 
+                        target: targetNode, 
+                        link_type: linkType 
+                    })
+                });
+                
+                if (response.ok) {
+                    const details = await response.json();
+                    return details;
+                } else {
+                    console.error('Failed to fetch link details');
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching link details:', error);
+                return null;
+            }
+        },
+
+        async fetchNodeDetails(nodeName) {
+            try {
+                // Fetch both GLM details and simulation data
+                const [detailsResponse, simulationResponse] = await Promise.all([
+                    fetch('/get_node_details', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ node_name: nodeName })
+                    }),
+                    fetch('/get_node_simulation_data', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ node_name: nodeName })
+                    })
+                ]);
+                
+                let details = null;
+                let simulationData = null;
+                
+                if (detailsResponse.ok) {
+                    details = await detailsResponse.json();
+                }
+                
+                if (simulationResponse.ok) {
+                    const simResult = await simulationResponse.json();
+                    simulationData = simResult.simulation_data;
+                }
+                
+                return {
+                    ...details,
+                    simulationData: simulationData
+                };
+                
+            } catch (error) {
+                console.error('Error fetching node details:', error);
+                return null;
+            }
+        },
+
+        formatPropertyValue(value) {
+            if (Array.isArray(value)) {
+                return value.join(' ');
+            }
+            if (typeof value === 'object' && value !== null) {
+                return JSON.stringify(value);
+            }
+            return value;
+        },
+
+        // Simulation results functions
+        async showAllSimulationResults() {
+            this.resultsLoading = true;
+            this.showResultsModal = true;
+            
+            try {
+                const response = await fetch('/get_simulation_results');
+                if (response.ok) {
+                    const data = await response.json();
+                    this.simulationResults = data;
+                } else {
+                    console.error('Failed to fetch simulation results');
+                    this.simulationResults = null;
+                }
+            } catch (error) {
+                console.error('Error fetching simulation results:', error);
+                this.simulationResults = null;
+            } finally {
+                this.resultsLoading = false;
+            }
+        },
+
+        closeResultsModal() {
+            this.showResultsModal = false;
+            this.simulationResults = null;
+        },
+
+        getVoltageColor(voltagePercent) {
+            if (voltagePercent >= 95) return 'text-green-600';
+            if (voltagePercent >= 90) return 'text-yellow-600';
+            return 'text-red-600';
         }
     }
 }

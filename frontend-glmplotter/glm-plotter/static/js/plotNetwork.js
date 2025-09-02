@@ -85,6 +85,19 @@ function loadNetworkVisualization() {
       link = link.data(graph.links)
           .enter().append("g")
           .attr("class", "link")
+          .on("dblclick", function(d) {
+              // Handle double click for link details
+              d3.event.stopPropagation();
+              showLinkDetails(d);
+          })
+          .on("mouseover", function(d) {
+              d3.select(this).style("cursor", "pointer");
+              d3.select(this).select("line").style("stroke-width", "3px");
+          })
+          .on("mouseout", function(d) {
+              d3.select(this).style("cursor", "default");
+              d3.select(this).select("line").style("stroke-width", "2px");
+          });
        // there is no value property. But varying line-width could be useful in the
        // future - keep
        //   .style("stroke-width", function(d) { return Math.sqrt(d.value); });
@@ -106,9 +119,17 @@ function loadNetworkVisualization() {
           .enter().append("g")
           .attr("class", "node")
     	  .call(drag) // this command enables the dragging feature
-	  .on("dblclick", dblclick);
-    //.on("click",clickAction); // this was removed but can be used to display
-    // a hidden chart
+	  .on("dblclick", function(d) {
+              // Handle double click for node details
+              d3.event.stopPropagation();
+              showNodeDetails(d);
+          })
+          .on("mouseover", function(d) {
+              d3.select(this).classed("clickable", true);
+          })
+          .on("mouseout", function(d) {
+              d3.select(this).classed("clickable", false);
+          });
 
       node.each(function(d){
         if (d.classNm) {
@@ -182,9 +203,58 @@ function dragstart(d) {
   d3.select(this).classed("fixed", d.fixed = true);
 }
 
-// when you double click a fixed node, it is released
-function dblclick(d) {
-  d3.select(this).classed("fixed", d.fixed = false);
+// Function to show node details (called on double click)
+function showNodeDetails(d) {
+  // Get the app instance and show node details
+  if (window.gridLabAppInstance && typeof window.gridLabAppInstance.fetchNodeDetails === 'function') {
+    // Show loading state by immediately opening modal with basic info
+    const loadingNodeData = {
+      name: d.name,
+      classNm: d.classNm,
+      child: d.child,
+      position: { x: d.x, y: d.y },
+      loading: true
+    };
+    window.gridLabAppInstance.showNodeDetails(loadingNodeData);
+    
+    // Fetch detailed information
+    window.gridLabAppInstance.fetchNodeDetails(d.name).then(details => {
+      if (details && window.gridLabAppInstance.showDetailModal) {
+        const nodeData = {
+          ...d,
+          ...details,
+          position: { x: d.x, y: d.y },
+          loading: false
+        };
+        window.gridLabAppInstance.showNodeDetails(nodeData);
+      } else if (window.gridLabAppInstance.showDetailModal) {
+        // Fallback to basic node data if API fails
+        const nodeData = {
+          name: d.name,
+          classNm: d.classNm,
+          child: d.child,
+          position: { x: d.x, y: d.y },
+          basicInfo: true,
+          loading: false
+        };
+        window.gridLabAppInstance.showNodeDetails(nodeData);
+      }
+    });
+  }
+}
+
+// Function to show link details (called on double click)
+function showLinkDetails(d) {
+  // Get the app instance and show link details
+  if (window.gridLabAppInstance && typeof window.gridLabAppInstance.showLinkDetails === 'function') {
+    const linkData = {
+      source: d.source.name,
+      target: d.target.name,
+      linkType: d.linkType,
+      type: 'link'
+    };
+    window.gridLabAppInstance.showLinkDetails(linkData);
+  }
 }
 
 function saveXY(){
