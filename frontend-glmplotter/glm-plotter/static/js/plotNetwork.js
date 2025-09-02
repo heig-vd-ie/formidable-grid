@@ -169,25 +169,34 @@ function dblclick(d) {
 }
 
 function saveXY(){
-  var pre = document.getElementById('rmPreText').value;
-	var myStr = "data:text/csv;charset=utf-8,";
-	txtArr = [];
-	cxArr = [];
-	cyArr = [];
+	var myStr = "data:text/csv;charset=utf-8,name,x,y\n";
+	var nodeData = [];
 
-	d3.selectAll("text.nodeNm").each(function(d){
-		txtArr.push(pre + d3.select(this).text());
-	})
-	d3.selectAll("circle").each(function (d){
-		cxArr.push(d3.select(this).attr("cx"));
-		cyArr.push(d3.select(this).attr("cy"));
+	// Collect all node data with coordinates
+	d3.selectAll("g.node").each(function(d) {
+		// Get the circle element's position
+		var circle = d3.select(this).select("circle");
+		var cx = circle.attr("cx");
+		var cy = circle.attr("cy");
+		
+		// If circle doesn't have cx/cy attributes, use the node's x/y data
+		if (!cx || !cy) {
+			cx = d.x;
+			cy = d.y;
+		}
+		
+		nodeData.push({
+			name: d.name,
+			x: cx,
+			y: cy
+		});
 	});
-	if (txtArr.length!= cxArr.length || txtArr.length!= cyArr.length) {
-		throw "number of circles is not consistent with number of text labels!"
+
+	// Build CSV content
+	for (var i = 0; i < nodeData.length; i++) {
+		myStr = myStr + nodeData[i].name + "," + nodeData[i].x + "," + nodeData[i].y + "\n";
 	}
-	for (var ii=0; ii<txtArr.length; ii++){
-		myStr = myStr + txtArr[ii] + "," + cxArr[ii] + "," + cyArr[ii] + "\n"
-	}
+
 	var encodedUri = encodeURI(myStr);
 	var dummy = document.createElement("a");
 	dummy.setAttribute("href", encodedUri);
@@ -197,42 +206,44 @@ function saveXY(){
 }
 
 function saveXYfixed(){
-  var pre = document.getElementById('rmPreText').value;
-  var myStr = "data:text/csv;charset=utf-8,";
-  txtArr = [];
-  cxArr = [];
-  cyArr = [];
+	var myStr = "data:text/csv;charset=utf-8,name,x,y\n";
+	var nodeData = [];
 
-  d3.selectAll("text.nodeNm").each(function(d){
-    if (d.fixed){
-      txtArr.push(pre+d3.select(this).text());
-    }
-  })
-  d3.selectAll("circle").each(function (d){
-    if (d.fixed){
-      cxArr.push(d3.select(this).attr("cx"));
-      cyArr.push(d3.select(this).attr("cy"));
-    }
-  });
-  if (txtArr.length!= cxArr.length || txtArr.length!= cyArr.length) {
-    throw "number of circles is not consistent with number of text labels!"
-  }
-  for (var ii=0; ii<txtArr.length; ii++){
-    myStr = myStr + txtArr[ii] + "," + cxArr[ii] + "," + cyArr[ii] + "\n"
-  }
-  var encodedUri = encodeURI(myStr);
-  var dummy = document.createElement("a");
-  dummy.setAttribute("href", encodedUri);
-  dummy.setAttribute("download", "xycoords.csv");
-  document.body.appendChild(dummy);
-  dummy.click(); // This will download the data file
+	// Collect only fixed nodes data with coordinates
+	d3.selectAll("g.node").each(function(d) {
+		if (d.fixed) {
+			// Get the circle element's position
+			var circle = d3.select(this).select("circle");
+			var cx = circle.attr("cx");
+			var cy = circle.attr("cy");
+			
+			// If circle doesn't have cx/cy attributes, use the node's x/y data
+			if (!cx || !cy) {
+				cx = d.x;
+				cy = d.y;
+			}
+			
+			nodeData.push({
+				name: d.name,
+				x: cx,
+				y: cy
+			});
+		}
+	});
+
+	// Build CSV content
+	for (var i = 0; i < nodeData.length; i++) {
+		myStr = myStr + nodeData[i].name + "," + nodeData[i].x + "," + nodeData[i].y + "\n";
+	}
+
+	var encodedUri = encodeURI(myStr);
+	var dummy = document.createElement("a");
+	dummy.setAttribute("href", encodedUri);
+	dummy.setAttribute("download", "xycoords.csv");
+	document.body.appendChild(dummy);
+	dummy.click(); // This will download the data file
 }
 
-function removePrefix(){
-		var pre = document.getElementById('rmPreText').value;
-		d3.selectAll("text.nodeNm").text(
-      function (d){return d.name.replace(pre,"");});
-}
 
 function nodeSearcher(){
 		var targetNodeNm = document.getElementById('nodeSearchNm').value;
@@ -274,7 +285,6 @@ window.loadNetworkVisualization = loadNetworkVisualization;
 window.saveXY = saveXY;
 window.saveXYfixed = saveXYfixed;
 window.nodeSearcher = nodeSearcher;
-window.removePrefix = removePrefix;
 window.changeGravity = changeGravity;
 window.changeLinkDistance = changeLinkDistance;
 window.changeCharge = changeCharge;

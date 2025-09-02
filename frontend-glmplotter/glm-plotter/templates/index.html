@@ -334,20 +334,7 @@
                     </div>
                 </div>
                 
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Remove Prefix</label>
-                    <div class="flex space-x-2">
-                        <input type="text" 
-                               x-model="prefixToRemove"
-                               placeholder="Enter prefix to remove"
-                               class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <button @click="removePrefix()" 
-                                :disabled="!visualizationLoaded || !prefixToRemove"
-                                class="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white text-sm rounded-md transition-colors">
-                            Remove
-                        </button>
-                    </div>
-                </div>
+
                 
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Gravity Control</label>
@@ -393,7 +380,6 @@
             simulationSuccess: false,
             nodeSearchTerm: '',
             gravityValue: 0.05,
-            prefixToRemove: '',
 
             // Initialize
             init() {
@@ -554,16 +540,6 @@
                 } else {
                     alert('No visualization loaded');
                 }
-            },
-
-            removePrefix() {
-                if (typeof window.removePrefix === 'function') {
-                    // Set the prefix value in the original input for compatibility
-                    document.getElementById('rmPreText').value = this.prefixToRemove;
-                    window.removePrefix();
-                } else {
-                    alert('No visualization loaded');
-                }
             }
         }
     }
@@ -574,7 +550,6 @@
         const hiddenInputs = `
             <input type="hidden" id="nodeSearchNm" value="">
             <input type="hidden" id="gravityVal" value="0.05">
-            <input type="hidden" id="rmPreText" value="">
         `;
         document.body.insertAdjacentHTML('beforeend', hiddenInputs);
     });
