@@ -45,3 +45,11 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    port = int(os.getenv("SERVER_PORT", "4600"))
+    host = os.getenv("SERVER_HOST", "0.0.0.0")
+    uvicorn.run(api, host=host, port=port)

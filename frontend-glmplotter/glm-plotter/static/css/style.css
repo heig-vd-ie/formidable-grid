@@ -16,7 +16,59 @@
 #fileChooser {
   margin: auto;
   width: 50%;
+}
 
+#gridlabdControls, #cacheControls {
+  margin: 20px auto;
+  width: 80%;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+#gridlabdControls h3, #cacheControls h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+#gridlabdControls button, #cacheControls button {
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#simulationFileInput {
+  padding: 8px;
+  border: 2px dashed #ddd;
+  border-radius: 4px;
+  background-color: #fafafa;
+  width: 100%;
+  max-width: 400px;
+}
+
+#simulationFileInput:hover {
+  border-color: #4CAF50;
+  background-color: #f0f8f0;
+}
+
+#gridlabdControls button:hover, #cacheControls button:hover {
+  background-color: #45a049;
+}
+
+#randomseed {
+  margin: 0 10px;
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
 }
 
 /* Format nodes */
