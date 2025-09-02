@@ -10,6 +10,7 @@ import GLMparser
 app = Flask(__name__)
 
 SERVER_PORT = os.getenv("SERVER_PORT", "5000")
+SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -94,4 +95,4 @@ def parseFixedNodes(nodesFile):
 
 if __name__ == "__main__":
     app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
-    app.run(port=int(SERVER_PORT))
+    app.run(port=int(SERVER_PORT), host=SERVER_HOST)

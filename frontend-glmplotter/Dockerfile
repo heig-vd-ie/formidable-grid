@@ -11,4 +11,4 @@ EXPOSE ${SERVER_PORT}
 
 WORKDIR /app/glm-plotter
 
-CMD gunicorn --bind 0.0.0.0:$SERVER_PORT glm-plotter:app
+CMD gunicorn --bind $SERVER_HOST:$SERVER_PORT glm-plotter:app

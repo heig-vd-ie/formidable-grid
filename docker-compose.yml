@@ -5,6 +5,7 @@ services:
       dockerfile: backend-gridlabd/Dockerfile
     container_name: backend-gridlabd
     environment:
+      - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${BACKEND_GRIDLABD_PORT}
       - GRIDLABD_DIR_DOCKER=${GRIDLABD_DIR_DOCKER}
       - GRIDLABD_DIR_NATIVE=${GRIDLABD_DIR_NATIVE}
@@ -20,6 +21,7 @@ services:
       dockerfile: frontend-glmplotter/Dockerfile
     container_name: frontend-glmplotter
     environment:
+      - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${FRONTEND_GLMPLOTTER_PORT}
     ports:
       - "${FRONTEND_GLMPLOTTER_PORT}:${FRONTEND_GLMPLOTTER_PORT}"

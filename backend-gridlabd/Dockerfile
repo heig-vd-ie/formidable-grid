@@ -25,4 +25,4 @@ RUN mkdir -p /app/models && chown -R 1000:1000 /app/models
 
 EXPOSE ${SERVER_PORT}
 
-CMD ["/app/.venv/bin/uvicorn", "src.main:api", "--host", "0.0.0.0", "--port", "4600"]
+CMD /app/.venv/bin/uvicorn src.main:api --host ${SERVER_HOST} --port ${SERVER_PORT}
