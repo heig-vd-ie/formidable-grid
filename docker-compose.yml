@@ -13,3 +13,31 @@ services:
     ports:
       - ${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}
     user: root
+  frontend-webgme:
+    build:
+      context: .
+      dockerfile: frontend-webgme/Dockerfile
+    container_name: frontend-webgme
+    environment:
+      - SERVER_PORT=${FRONTEND_WEBGME_PORT}
+      - MONGO_URL=${MONGO_URL}
+    ports:
+      - "${FRONTEND_WEBGME_PORT}:${FRONTEND_WEBGME_PORT}"
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6.0
+    container_name: mongo
+    restart: always
+    ports:
+      - "${MONGO_PORT}:27017"
+    environment:
+      MONGO_INITDB_DATABASE: gridlabd
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - mongo-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d  
+volumes:
+  mongo-data:

@@ -10,7 +10,7 @@ _build: ## Build the Docker images
 	docker compose -f $(COMPOSE_FILE) build
 
 _start: ## Start the Docker containers
-	docker compose -f $(COMPOSE_FILE) up -d
+	docker compose -f $(COMPOSE_FILE) up -d $(CONTAINERS)
 
 start: ## Build and start the Docker containers
 	@$(MAKE) _build
