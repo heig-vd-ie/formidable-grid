@@ -8,6 +8,7 @@ import json
 import GLMparser
 
 app = Flask(__name__)
+app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
 
 SERVER_PORT = os.getenv("SERVER_PORT", "5000")
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
@@ -74,7 +75,10 @@ def data():
     return JSONstr
 
 
-app.config["UPLOAD_FOLDER"] = "uploads"
+app.config["UPLOAD_FOLDER"] = os.path.join(
+    os.path.dirname(__file__), "../../.cache/uploads"
+)
+os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 
 def parseFixedNodes(nodesFile):
@@ -94,5 +98,4 @@ def parseFixedNodes(nodesFile):
 
 
 if __name__ == "__main__":
-    app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
-    app.run(port=int(SERVER_PORT), host=SERVER_HOST)
+    app.run(port=int(SERVER_PORT), host=SERVER_HOST, debug=True)
