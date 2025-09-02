@@ -1,0 +1,192 @@
+/* CSS Variables for consistent colors */
+:root {
+  /* Link/Line colors */
+  --color-overhead-line: rgb(211,211,211);
+  --color-underground-line: rgb(211,211,211);
+  --color-switch: rgb(100,100,100);
+  --color-regulator: rgb(70,70,70);
+  --color-transformer: rgb(255,169,44);
+  
+  /* Node colors */
+  --color-load: rgb(69, 179, 255);
+  --color-capacitor: rgb(31, 119, 180);
+  --color-meter: rgb(44, 160, 44);
+  --color-diesel-dg: rgb(255,169,44);
+  --color-node: rgb(174, 199, 232);
+}
+
+/* D3.js visualization styles */
+.node {
+    stroke: #fff;
+    stroke-width: 2.5px;
+    cursor: move;
+}
+
+.node text {
+    stroke-width: 0px;
+    font-family: "Verdana";
+    font-size: 15px;
+}
+
+circle.load {
+    fill: var(--color-load);
+}
+
+.node.load.capacitor circle {
+    fill: var(--color-capacitor);
+}
+
+circle.node {
+    fill: var(--color-node);
+}
+
+.node.diesel_dg circle {
+    fill: var(--color-diesel-dg);
+}
+
+circle.meter {
+    fill: var(--color-meter);
+}
+
+.highlight {
+    fill: #FF0000;
+    font-weight: bold;
+}
+
+.node:hover circle {
+    fill: #FF0000;
+}
+
+.node.load.capacitor:hover circle {
+    fill: #FF0000;
+}
+
+.node g {
+    display: none;
+    font-family: "Verdana";
+    font-size: 16px;
+}
+
+.node:hover g {
+    display: inline;
+}
+
+/* Link styles */
+.link {
+    stroke: #999;
+    stroke-opacity: .8;
+    stroke-width: 3px;
+}
+
+.link.overhead_line {
+    stroke: var(--color-overhead-line);
+}
+
+.link.underground_line {
+    stroke: var(--color-underground-line);
+    stroke-dasharray: 5,2;
+}
+
+.link.switch {
+    stroke: var(--color-switch);
+    stroke-dasharray: 10,10;
+}
+
+.link.regulator {
+    stroke: var(--color-regulator);
+    stroke-width: 5px;
+}
+
+.link.transformer {
+    stroke: var(--color-transformer);
+    stroke-width: 8px;
+}
+
+.link text {
+    stroke-width: 0px;
+    font-family: "Verdana";
+    font-size: 16px;
+    display: none;
+}
+
+.link:hover line {
+    stroke: #000000;
+}
+
+.link:hover text {
+    display: inline;
+}
+
+/* Legend styles */
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 1rem;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: background-color 0.2s ease;
+}
+
+.legend-item:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.legend-item.disabled {
+    opacity: 0.4;
+    background-color: rgba(255, 0, 0, 0.1);
+}
+
+.legend-color {
+    width: 16px;
+    height: 3px;
+    border: 1px solid #ccc;
+    margin-right: 0.5rem;
+    transition: opacity 0.2s ease;
+}
+
+.legend-color.circle {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-color.dashed {
+    border-style: dashed;
+}
+
+/* Line legend colors */
+.legend-overhead { background-color: var(--color-overhead-line); }
+.legend-underground { background-color: var(--color-underground-line); }
+.legend-switch { background-color: var(--color-switch); }
+.legend-regulator { background-color: var(--color-regulator); height: 4px; }
+.legend-transformer { background-color: var(--color-transformer); height: 6px; }
+
+/* Node legend colors */
+.legend-load { background-color: var(--color-load); }
+.legend-capacitor { background-color: var(--color-capacitor); }
+.legend-meter { background-color: var(--color-meter); }
+.legend-diesel { background-color: var(--color-diesel-dg); }
+.legend-node { background-color: var(--color-node); }
+
+/* Visualization container styles */
+#main {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#main .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#main svg {
+    flex: 1;
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+}
