@@ -18,7 +18,7 @@
   width: 50%;
 }
 
-#gridlabdControls, #cacheControls {
+#gridlabdControls {
   margin: 20px auto;
   width: 80%;
   border: 1px solid #ddd;
@@ -27,12 +27,26 @@
   background-color: #f9f9f9;
 }
 
-#gridlabdControls h3, #cacheControls h3 {
+#visualizationControls {
+  margin: 20px auto;
+  width: 80%;
+  border: 1px solid #ddd;
+  padding: 15px;
+  border-radius: 5px;
+  background-color: #f0f8ff;
+}
+
+#gridlabdControls h3 {
   margin-top: 0;
   color: #333;
 }
 
-#gridlabdControls button, #cacheControls button {
+#visualizationControls h3 {
+  margin-top: 0;
+  color: #1976D2;
+}
+
+#gridlabdControls button {
   background-color: #4CAF50;
   border: none;
   color: white;
@@ -44,6 +58,28 @@
   margin: 4px 2px;
   cursor: pointer;
   border-radius: 4px;
+}
+
+#visualizationControls button {
+  background-color: #2196F3;
+  border: none;
+  color: white;
+  padding: 8px 16px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 14px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#cacheFileSelect {
+  padding: 5px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background-color: white;
+  min-width: 200px;
 }
 
 #simulationFileInput {
@@ -60,8 +96,12 @@
   background-color: #f0f8f0;
 }
 
-#gridlabdControls button:hover, #cacheControls button:hover {
+#gridlabdControls button:hover {
   background-color: #45a049;
+}
+
+#visualizationControls button:hover {
+  background-color: #1976D2;
 }
 
 #randomseed {

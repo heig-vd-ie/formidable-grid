@@ -3,29 +3,37 @@
 <head><link rel="stylesheet" href="static/css/style.css"></head>
 <style>body { font: 12px Arial;}</style>
 <body>
-<div id="fileChooser">
-	<form action="/" method="post" enctype="multipart/form-data">
-	    <input type="file" name="glm_file" value="e"/>
-	    <input type="submit" value="Submit glm model" />
-	</form>
-</div>
 
 <div id="gridlabdControls">
 	<h3>GridLAB-D Simulation</h3>
+<div id="gridlabdControls">
+	<h3>Step 1: Run GridLAB-D Simulation</h3>
 	<div>
 		<label for="simulationFileInput">Select GLM file:</label>
-		<input type="file" id="simulationFileInput" accept=".glm" style="margin: 5x 0;" />
+		<input type="file" id="simulationFileInput" accept=".glm" style="margin: 5px 0;" />
+	</div>
+	<div>
 		<label for="randomseed">Random Seed:</label>
 		<input type="number" id="randomseed" value="42" />
 	</div>
-	<button onclick="runSimulationOnSelectedFile()">Run Simulation</button>
+	<div style="margin-top: 10px;">
+		<button onclick="runSimulationOnSelectedFile()" style="background-color: #2196F3; font-size: 16px; padding: 10px 20px;">🚀 Run Simulation</button>
+	</div>
 	<div id="simulationResult" style="margin-top: 10px;"></div>
 </div>
 
-<div id="cacheControls">
-	<h3>Cache Files</h3>
-	<button onclick="loadCacheFiles()">Refresh Cache Files</button>
-	<div id="cacheFilesList" style="margin-top: 10px;"></div>
+<div id="visualizationControls">
+	<h3>Step 2: Load Results for Visualization</h3>
+	<div>
+		<label for="cacheFileSelect">Select result file from cache:</label>
+		<select id="cacheFileSelect" style="margin: 5px 10px; padding: 5px; min-width: 300px;">
+			<option value="">-- Select file to visualize --</option>
+		</select>
+		<button onclick="loadCacheFiles()" style="background-color: #2196F3; padding: 5px 10px;">🔄 Refresh</button>
+	</div>
+	<div style="margin-top: 10px;">
+		<button onclick="loadSelectedCacheFile()" style="background-color: #4CAF50; font-size: 16px; padding: 10px 20px;">📊 Load for Visualization</button>
+	</div>
 </div>
 
 <div id="main"></div>
@@ -115,93 +123,32 @@ Legend:
 
 <script>
 function loadCacheFiles() {
-    const cacheDiv = document.getElementById('cacheFilesList');
-    cacheDiv.innerHTML = '<p>Loading cache files...</p>';
+    const cacheSelect = document.getElementById('cacheFileSelect');
     
     fetch('/list_cache_files')
     .then(response => response.json())
     .then(data => {
+        // Clear existing options except the first one
+        cacheSelect.innerHTML = '<option value="">-- Select cached file --</option>';
+        
         if (data.files && data.files.length > 0) {
-            let html = '<p><strong>Available GLM files in cache:</strong></p>';
-            html += '<div style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; padding: 10px;">';
             data.files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name;
                 const modifiedDate = new Date(file.modified * 1000).toLocaleString();
-                html += `<div style="margin-bottom: 5px; padding: 5px; border-bottom: 1px solid #eee;">`;
-                html += `<strong>${file.name}</strong> `;
-                html += `<span style="color: #666;">(${file.size} bytes, modified: ${modifiedDate})</span> `;
-                html += `<button onclick="loadCacheFile('${file.name}')" style="margin-left: 10px;">Load</button>`;
-                html += `</div>`;
+                option.textContent = `${file.name} (${(file.size/1024).toFixed(1)}KB - ${modifiedDate})`;
+                cacheSelect.appendChild(option);
             });
-            html += '</div>';
-            cacheDiv.innerHTML = html;
-        } else {
-            cacheDiv.innerHTML = '<p><em>No GLM files found in cache.</em></p>';
         }
     })
     .catch(error => {
-        cacheDiv.innerHTML = '<div style="color: red;">Error loading cache files: ' + error.message + '</div>';
-    });
-}
-
-function loadCacheFile(filename) {
-    fetch('/load_cache_file', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ filename: filename })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            alert('File loaded successfully: ' + data.filename);
-            // Refresh the visualization
-            window.location.reload();
-        } else {
-            alert('Error loading file: ' + data.error);
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
-    });
-}
-
-function loadSelectedFile() {
-    const fileInput = document.getElementById('simulationFileInput');
-    
-    if (!fileInput.files.length) {
-        alert('Please select a GLM file first.');
-        return;
-    }
-    
-    const selectedFile = fileInput.files[0];
-    
-    // Check if it's a GLM file
-    if (!selectedFile.name.toLowerCase().endsWith('.glm')) {
-        alert('Please select a valid GLM file.');
-        return;
-    }
-    
-    // Create form data with the selected file
-    const formData = new FormData();
-    formData.append('glm_file', selectedFile);
-    
-    // Upload the file using the existing upload mechanism
-    fetch('/', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            alert(`File ${selectedFile.name} loaded successfully!`);
-            // Refresh the page to show the visualization
-            window.location.reload();
-        } else {
-            alert('Error loading file.');
-        }
-    })
-    .catch(error => {
-        alert('Error: ' + error.message);
+        console.error('Error loading cache files:', error);
+        // Add error option
+        const errorOption = document.createElement('option');
+        errorOption.value = '';
+        errorOption.textContent = 'Error loading cache files';
+        errorOption.disabled = true;
+        cacheSelect.appendChild(errorOption);
     });
 }
 
@@ -210,8 +157,9 @@ function runSimulationOnSelectedFile() {
     const randomseed = document.getElementById('randomseed').value;
     const resultDiv = document.getElementById('simulationResult');
     
+    // Check if a file is selected from computer
     if (!fileInput.files.length) {
-        alert('Please select a GLM file first.');
+        alert('Please select a GLM file from your computer.');
         return;
     }
     
@@ -230,7 +178,7 @@ function runSimulationOnSelectedFile() {
     formData.append('file', selectedFile);
     formData.append('randomseed', randomseed);
     
-    // Send directly to the run_gridlabd endpoint with the file
+    // Send to the run_gridlabd_with_file endpoint
     fetch('/run_gridlabd_with_file', {
         method: 'POST',
         body: formData
@@ -238,18 +186,24 @@ function runSimulationOnSelectedFile() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            let html = '<div style="color: green;"><strong>Simulation completed successfully!</strong></div>';
+            let html = '<div style="color: green;"><strong>✅ Simulation completed successfully!</strong></div>';
             if (data.output_files && data.output_files.length > 0) {
-                html += '<p><em>Use "Refresh Cache Files" to load these files.</em></p>';
+                html += '<p><strong>Output files generated:</strong></p>';
+                html += '<ul>';
+                data.output_files.forEach(file => {
+                    html += `<li>${file}</li>`;
+                });
+                html += '</ul>';
+                html += '<p><em>💡 Go to Step 2 and click "Refresh" to load these results for visualization.</em></p>';
             }
             if (data.stdout) {
                 html += '<details><summary>GridLAB-D Output</summary><pre>' + data.stdout + '</pre></details>';
             }
             resultDiv.innerHTML = html;
-            // Refresh cache files list
+            // Refresh cache files list for Step 2
             loadCacheFiles();
         } else {
-            let html = '<div style="color: red;"><strong>Simulation failed!</strong></div>';
+            let html = '<div style="color: red;"><strong>❌ Simulation failed!</strong></div>';
             if (data.stderr) {
                 html += '<p><strong>Error:</strong></p><pre>' + data.stderr + '</pre>';
             }
@@ -261,6 +215,37 @@ function runSimulationOnSelectedFile() {
     })
     .catch(error => {
         resultDiv.innerHTML = '<div style="color: red;">Error: ' + error.message + '</div>';
+    });
+}
+
+function loadSelectedCacheFile() {
+    const cacheSelect = document.getElementById('cacheFileSelect');
+    
+    if (!cacheSelect.value) {
+        alert('Please select a file from the cache first.');
+        return;
+    }
+    
+    // Load from cache
+    fetch('/load_cache_file', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ filename: cacheSelect.value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('✅ File loaded successfully: ' + data.filename);
+            // Refresh the visualization
+            window.location.reload();
+        } else {
+            alert('❌ Error loading file: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('❌ Error: ' + error.message);
     });
 }
 
