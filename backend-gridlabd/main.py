@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 
 api = FastAPI()
 
-GRIDLABD_DIR_DOCKER = Path(os.getenv("GRIDLABD_DIR_DOCKER", ""))
+MODELS_FOLDER = Path(os.getenv("MODELS_FOLDER", ""))
 
 
 @api.get("/")
@@ -20,7 +20,7 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
         if file.filename is None:
             raise HTTPException(status_code=400, detail="No file uploaded")
         # Save uploaded file to the mounted folder
-        file_path_docker = GRIDLABD_DIR_DOCKER / file.filename
+        file_path_docker = MODELS_FOLDER / file.filename
         with file_path_docker.open("wb") as f:
             shutil.copyfileobj(file.file, f)
 
@@ -32,7 +32,7 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
                 "-D",
                 "randomseed={}".format(randomseed),
             ],
-            cwd=GRIDLABD_DIR_DOCKER,
+            cwd=MODELS_FOLDER,
             capture_output=True,
             text=True,
         )
@@ -50,6 +50,9 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
 if __name__ == "__main__":
     import uvicorn
 
-    port = int(os.getenv("SERVER_PORT", "4600"))
-    host = os.getenv("SERVER_HOST", "0.0.0.0")
-    uvicorn.run(api, host=host, port=port)
+    port = os.getenv("SERVER_PORT")
+
+    if port is None:
+        raise ValueError("SERVER_PORT environment variable is not set")
+
+    uvicorn.run(api, host="0.0.0.0", port=int(port))

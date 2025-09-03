@@ -1,7 +1,6 @@
 FROM lfenergy/arras:latest
 
 ENV POETRY_VERSION=2.1.3 \
-    SERVER_PORT=4600 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_CREATE=true \
     POETRY_VIRTUALENVS_IN_PROJECT=true \
@@ -25,4 +24,4 @@ RUN mkdir -p /app/models && chown -R 1000:1000 /app/models
 
 EXPOSE ${SERVER_PORT}
 
-CMD /app/.venv/bin/uvicorn src.main:api --host ${SERVER_HOST} --port ${SERVER_PORT}
+CMD /app/.venv/bin/uvicorn src.main:api --host 0.0.0.0 --port ${SERVER_PORT}

@@ -7,11 +7,9 @@ import GLMparser
 app = Flask(__name__)
 app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
 
-NATIVE_PORT = os.getenv("NATIVE_PORT", "5001")
-SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
+NATIVE_PORT = os.getenv("FRONTEND_GRIDLABD_NATIVE_PORT", "5001")
 BACKEND_GRIDLABD_PORT = os.getenv("BACKEND_GRIDLABD_PORT", "4600")
-BACKEND_GRIDLABD_HOST = os.getenv("BACKEND_GRIDLABD_HOST", "localhost")
-BACKEND_GRIDLABD_URL = f"http://{BACKEND_GRIDLABD_HOST}:{BACKEND_GRIDLABD_PORT}"
+BACKEND_GRIDLABD_URL = f"http://0.0.0.0:{BACKEND_GRIDLABD_PORT}"
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -27,7 +25,7 @@ def index():
         ):
             print("Reading the csv file")
             session["csv"] = 1
-            fullfilename = os.path.join(app.config["UPLOAD_FOLDER"], "curr.csv")
+            fullfilename = os.path.join(app.config["UPLOADS_FOLDER"], "curr.csv")
             request.files["fixedNodes"].save(fullfilename)
 
         if (
@@ -39,7 +37,7 @@ def index():
             print("Reading the glm file")
             session.clear()
             session["glm_name"] = request.files["glm_file"].filename
-            fullfilename = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+            fullfilename = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
             request.files["glm_file"].save(fullfilename)
 
     return render_template("index.html")
@@ -89,7 +87,7 @@ def run_simulation():
             # Check if GridLAB-D execution was successful
             if result["returncode"] == 0:
                 # Look for output files in the cache directory
-                cache_dir = app.config["CACHE_FOLDER"]
+                cache_dir = app.config["MODELS_FOLDER"]
                 output_files = []
 
                 if os.path.exists(cache_dir):
@@ -156,7 +154,7 @@ def load_cache_data():
     if not filename:
         return jsonify({"success": False, "error": "No filename provided"}), 400
 
-    cache_dir = app.config["CACHE_FOLDER"]
+    cache_dir = app.config["MODELS_FOLDER"]
     file_path = os.path.join(cache_dir, filename)
 
     if not os.path.isfile(file_path):
@@ -169,7 +167,7 @@ def load_cache_data():
         # Copy the cache file to current working file
         import shutil
 
-        current_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+        current_file_path = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
         shutil.copy2(file_path, current_file_path)
 
         # Update session
@@ -194,7 +192,7 @@ def load_cache_data():
 @app.route("/run_gridlabd", methods=["POST"])
 def run_gridlabd():
     """Run GridLAB-D simulation on the uploaded GLM file"""
-    glm_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+    glm_file_path = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
 
     if not os.path.isfile(glm_file_path):
         return jsonify({"error": "No GLM file found. Please upload a file first."}), 400
@@ -220,12 +218,12 @@ def run_gridlabd():
 
             # Check if GridLAB-D execution was successful
             if result["returncode"] == 0:
-                # Look for output files in the cache directory
-                cache_dir = app.config["CACHE_FOLDER"]
+                # Look for output files in the models directory
+                models_dir = app.config["MODELS_FOLDER"]
                 output_files = []
 
-                if os.path.exists(cache_dir):
-                    for file in os.listdir(cache_dir):
+                if os.path.exists(models_dir):
+                    for file in os.listdir(models_dir):
                         if file.endswith(".glm"):
                             output_files.append(file)
 
@@ -300,12 +298,12 @@ def run_gridlabd_with_file():
 
             # Check if GridLAB-D execution was successful
             if result["returncode"] == 0:
-                # Look for output files in the cache directory
-                cache_dir = app.config["CACHE_FOLDER"]
+                # Look for output files in the models directory
+                models_dir = app.config["MODELS_FOLDER"]
                 output_files = []
 
-                if os.path.exists(cache_dir):
-                    for file in os.listdir(cache_dir):
+                if os.path.exists(models_dir):
+                    for file in os.listdir(models_dir):
                         if file.endswith(".glm"):
                             output_files.append(file)
 
@@ -351,17 +349,17 @@ def load_cache_file():
     if not filename:
         return jsonify({"error": "No filename provided"}), 400
 
-    cache_dir = app.config["CACHE_FOLDER"]
-    file_path = os.path.join(cache_dir, filename)
+    models_dir = app.config["MODELS_FOLDER"]
+    file_path = os.path.join(models_dir, filename)
 
     if not os.path.isfile(file_path):
-        return jsonify({"error": f"File {filename} not found in cache"}), 404
+        return jsonify({"error": f"File {filename} not found in models"}), 404
 
     try:
-        # Copy the cache file to current working file
+        # Copy the models file to current working file
         import shutil
 
-        current_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+        current_file_path = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
         shutil.copy2(file_path, current_file_path)
 
         # Update session
@@ -383,7 +381,7 @@ def load_cache_file():
 @app.route("/list_cache_files")
 def list_cache_files():
     """List all GLM files in the cache directory"""
-    cache_dir = app.config["CACHE_FOLDER"]
+    cache_dir = app.config["MODELS_FOLDER"]
     files = []
 
     if os.path.exists(cache_dir):
@@ -413,7 +411,7 @@ def get_node_details():
 
     try:
         # Load the current GLM file
-        glm_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+        glm_file_path = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
 
         if not os.path.isfile(glm_file_path):
             return jsonify({"error": "No GLM file loaded"}), 404
@@ -525,7 +523,7 @@ def get_link_details():
 
     try:
         # Load the current GLM file
-        glm_file_path = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
+        glm_file_path = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
 
         if not os.path.isfile(glm_file_path):
             return jsonify({"error": "No GLM file loaded"}), 404
@@ -587,16 +585,16 @@ def get_link_details():
 
 @app.route("/get_simulation_results", methods=["GET"])
 def get_simulation_results():
-    """Get simulation results from JSON files in the cache directory"""
+    """Get simulation results from JSON files in the models directory"""
     try:
-        cache_dir = app.config["CACHE_FOLDER"]
+        models_dir = app.config["MODELS_FOLDER"]
 
         # First try to get results from JSON file (preferred)
-        json_files = [f for f in os.listdir(cache_dir) if f.endswith(".json")]
+        json_files = [f for f in os.listdir(models_dir) if f.endswith(".json")]
 
         if json_files:
             # Use the first JSON file found (could be made configurable)
-            json_file = os.path.join(cache_dir, json_files[0])
+            json_file = os.path.join(models_dir, json_files[0])
 
             with open(json_file, "r") as f:
                 data = json.load(f)
@@ -691,7 +689,7 @@ def get_simulation_results():
 
         else:
             # Fallback to CSV file
-            results_file = os.path.join(cache_dir, "results.csv")
+            results_file = os.path.join(models_dir, "results.csv")
 
             if not os.path.isfile(results_file):
                 return jsonify({"error": "No simulation results found"}), 404
@@ -750,7 +748,7 @@ def get_node_simulation_data():
         return jsonify({"error": "No node name provided"}), 400
 
     try:
-        cache_dir = app.config["CACHE_FOLDER"]
+        cache_dir = app.config["MODELS_FOLDER"]
         results_file = os.path.join(cache_dir, "results.csv")
 
         if not os.path.isfile(results_file):
@@ -799,8 +797,8 @@ def get_node_simulation_data():
 
 @app.route("/data")
 def data():
-    glmFile = os.path.join(app.config["UPLOAD_FOLDER"], "curr.glm")
-    csvFile = os.path.join(app.config["UPLOAD_FOLDER"], "curr.csv")
+    glmFile = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
+    csvFile = os.path.join(app.config["UPLOADS_FOLDER"], "curr.csv")
     if "csv" in session and session["csv"] and os.path.isfile(csvFile):
         fixedNodesJSON = parseFixedNodes(csvFile)
     else:
@@ -827,21 +825,6 @@ def data():
     return JSONstr
 
 
-# Configure paths - use environment variables for Docker compatibility
-UPLOAD_FOLDER = os.getenv(
-    "UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "uploads")
-)
-CACHE_FOLDER = os.getenv(
-    "CACHE_FOLDER", os.path.join(os.path.dirname(__file__), "../../.cache/gridlabd")
-)
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["CACHE_FOLDER"] = CACHE_FOLDER
-
-os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
-os.makedirs(app.config["CACHE_FOLDER"], exist_ok=True)
-
-
 def parseFixedNodes(nodesFile):
     with open(nodesFile) as fr:
         lines = fr.readlines()
@@ -858,5 +841,14 @@ def parseFixedNodes(nodesFile):
     return json.dumps({"names": names, "x": x, "y": y})
 
 
+UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/uploads")
+MODELS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/models")
+
+app.config["UPLOADS_FOLDER"] = UPLOADS_FOLDER
+app.config["MODELS_FOLDER"] = MODELS_FOLDER
+
+os.makedirs(app.config["UPLOADS_FOLDER"], exist_ok=True)
+os.makedirs(app.config["MODELS_FOLDER"], exist_ok=True)
+
 if __name__ == "__main__":
-    app.run(port=int(NATIVE_PORT), host=SERVER_HOST, debug=True)
+    app.run(port=int(NATIVE_PORT), host="0.0.0.0", debug=True)

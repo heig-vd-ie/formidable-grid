@@ -17,7 +17,7 @@ start: ## Build and start the Docker containers
 	@$(MAKE) _start
 
 start-dev: ## Start Native service GLM plotter (the docker should be first stopped)
-	@cd frontend-glmplotter/glm-plotter && \
+	@cd frontend-gridlabd/glm-plotter && \
 		python glm-plotter.py
 
 stop: ## Stop the Docker containers
@@ -37,3 +37,9 @@ kill-port: ## Kill any process running on the specified port
 		echo "🔪 Killing process on port $(PORT)..."; \
 		kill -9 $$(lsof -ti :"$(PORT)"); \
 	fi
+
+fix-permission: ## Fix permissions for the uploads and models directories
+	@echo "Fixing permissions for uploads and models directories"
+	@sudo mkdir -p $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
+	@sudo chown -R $$(whoami):$(whoami) $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
+	@sudo chmod -R 755 $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
