@@ -15,7 +15,6 @@ _start: ## Start the Docker containers
 start: ## Build and start the Docker containers
 	@$(MAKE) _build
 	@$(MAKE) _start
-	$(MAKE) logs
 
 start-dev: ## Start Native service GLM plotter (the docker should be first stopped)
 	@cd frontend-glmplotter/glm-plotter && \
@@ -31,7 +30,7 @@ restart: ## Restart the Docker containers
 	@$(MAKE) stop _start
 
 logs: ## View the logs for the Docker containers
-	docker compose -f $(COMPOSE_FILE) logs -f
+	docker compose -f $(COMPOSE_FILE) logs -f $(CONTAINERS)
 
 kill-port: ## Kill any process running on the specified port
 	@if lsof -ti :"$(PORT)" >/dev/null; then \

@@ -7,10 +7,11 @@ import GLMparser
 app = Flask(__name__)
 app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
 
-SERVER_PORT = os.getenv("SERVER_PORT", "5000")
+NATIVE_PORT = os.getenv("NATIVE_PORT", "5001")
 SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
 BACKEND_GRIDLABD_PORT = os.getenv("BACKEND_GRIDLABD_PORT", "4600")
-BACKEND_GRIDLABD_URL = f"http://{SERVER_HOST}:{BACKEND_GRIDLABD_PORT}"
+BACKEND_GRIDLABD_HOST = os.getenv("BACKEND_GRIDLABD_HOST", "localhost")
+BACKEND_GRIDLABD_URL = f"http://{BACKEND_GRIDLABD_HOST}:{BACKEND_GRIDLABD_PORT}"
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -63,7 +64,7 @@ def run_simulation():
     try:
         # Get randomseed from request or use default
         randomseed = request.form.get("randomseed", 42)
-
+        print(f"Using randomseed: {randomseed}")
         # Prepare file for backend
         files = {
             "file": (
@@ -72,9 +73,11 @@ def run_simulation():
                 "application/octet-stream",
             )
         }
+        print(f"Prepared files for backend: {files}")
 
         form_data = {"randomseed": randomseed}
 
+        print(f"Calling backend at {BACKEND_GRIDLABD_URL}/run")
         # Call the backend service
         response = requests.patch(
             f"{BACKEND_GRIDLABD_URL}/run", files=files, data=form_data
@@ -824,12 +827,17 @@ def data():
     return JSONstr
 
 
-app.config["UPLOAD_FOLDER"] = os.path.join(
-    os.path.dirname(__file__), "../../.cache/uploads"
+# Configure paths - use environment variables for Docker compatibility
+UPLOAD_FOLDER = os.getenv(
+    "UPLOAD_FOLDER", os.path.join(os.path.dirname(__file__), "uploads")
 )
-app.config["CACHE_FOLDER"] = os.path.join(
-    os.path.dirname(__file__), "../../.cache/gridlabd"
+CACHE_FOLDER = os.getenv(
+    "CACHE_FOLDER", os.path.join(os.path.dirname(__file__), "../../.cache/gridlabd")
 )
+
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["CACHE_FOLDER"] = CACHE_FOLDER
+
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(app.config["CACHE_FOLDER"], exist_ok=True)
 
@@ -851,4 +859,4 @@ def parseFixedNodes(nodesFile):
 
 
 if __name__ == "__main__":
-    app.run(port=int(SERVER_PORT), host=SERVER_HOST, debug=True)
+    app.run(port=int(NATIVE_PORT), host=SERVER_HOST, debug=True)

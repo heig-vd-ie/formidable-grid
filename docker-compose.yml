@@ -1,3 +1,7 @@
+networks:
+  formidable-grid-network:
+    driver: bridge
+
 services:
   backend-gridlabd:
     build:
@@ -9,10 +13,16 @@ services:
       - SERVER_PORT=${BACKEND_GRIDLABD_PORT}
       - GRIDLABD_DIR_DOCKER=${GRIDLABD_DIR_DOCKER}
       - GRIDLABD_DIR_NATIVE=${GRIDLABD_DIR_NATIVE}
+      - CACHE_FOLDER=/app/cache
+      - RESULTS_FOLDER=/app/results
     volumes:
       - ./${GRIDLABD_DIR_NATIVE}:${GRIDLABD_DIR_DOCKER}
+      - simulation-cache:/app/cache
+      - simulation-results:/app/results
     ports:
       - ${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}
+    networks:
+      - formidable-grid-network
     user: root
   
   frontend-glmplotter:
@@ -23,9 +33,21 @@ services:
     environment:
       - SERVER_HOST=${SERVER_HOST}
       - SERVER_PORT=${FRONTEND_GLMPLOTTER_PORT}
+      - BACKEND_GRIDLABD_PORT=${BACKEND_GRIDLABD_PORT}
+      - BACKEND_GRIDLABD_HOST=backend-gridlabd
+      - CACHE_FOLDER=/app/cache
+      - UPLOAD_FOLDER=/app/uploads
+    volumes:
+      - simulation-cache:/app/cache
+      - simulation-results:/app/results
+      - simulation-uploads:/app/uploads
     ports:
       - "${FRONTEND_GLMPLOTTER_PORT}:${FRONTEND_GLMPLOTTER_PORT}"
+    networks:
+      - formidable-grid-network
     user: root
+    depends_on:
+      - backend-gridlabd
 
   frontend-webgme:
     build:
@@ -37,6 +59,8 @@ services:
       - MONGO_URL=${MONGO_URL}
     ports:
       - "${FRONTEND_WEBGME_PORT}:${FRONTEND_WEBGME_PORT}"
+    networks:
+      - formidable-grid-network
     depends_on:
       - mongo
 
@@ -52,6 +76,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: rootpass
     volumes:
       - mongo-data:/data/db
-      - ./mongo-init:/docker-entrypoint-initdb.d  
+      - ./mongo-init:/docker-entrypoint-initdb.d
+    networks:
+      - formidable-grid-network
+      
 volumes:
   mongo-data:
+  simulation-cache:
+  simulation-results:
+  simulation-uploads:
