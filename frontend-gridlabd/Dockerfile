@@ -9,6 +9,6 @@ RUN pip install -r requirements.txt
 
 EXPOSE ${SERVER_PORT}
 
-WORKDIR /app/glm-plotter
+WORKDIR /app/src
 
-CMD gunicorn --bind 0.0.0.0:$SERVER_PORT glm-plotter:app
+CMD gunicorn --bind 0.0.0.0:$SERVER_PORT main:app

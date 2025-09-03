@@ -1,30 +1,21 @@
-from flask import Flask, render_template, request, session, jsonify
 import os
+from flask import Flask, render_template, request, session, jsonify
+from config import (
+    SECRET_KEY,
+    UPLOADS_FOLDER,
+    MODELS_FOLDER,
+    BACKEND_GRIDLABD_URL,
+    NATIVE_PORT,
+)
 import json
 import requests
 import shutil
-import GLMparser
+import parser
 
 app = Flask(__name__)
-app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
-
-# Configuration
-NATIVE_PORT = os.getenv("FRONTEND_GRIDLABD_NATIVE_PORT", "5001")
-BACKEND_GRIDLABD_PORT = os.getenv("BACKEND_GRIDLABD_PORT", "4600")
-if os.getenv("DEV", "").lower() == "true":
-    UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/uploads")
-    MODELS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/models")
-    BACKEND_GRIDLABD_URL = f"http://localhost:{BACKEND_GRIDLABD_PORT}"
-else:
-    UPLOADS_FOLDER = os.getenv("UPLOADS_FOLDER")
-    MODELS_FOLDER = os.getenv("MODELS_FOLDER")
-    BACKEND_GRIDLABD_URL = f"http://backend-gridlabd:{BACKEND_GRIDLABD_PORT}"
-
+app.secret_key = SECRET_KEY
 app.config["UPLOADS_FOLDER"] = UPLOADS_FOLDER
 app.config["MODELS_FOLDER"] = MODELS_FOLDER
-
-os.makedirs(app.config["UPLOADS_FOLDER"], exist_ok=True)
-os.makedirs(app.config["MODELS_FOLDER"], exist_ok=True)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -36,7 +27,9 @@ def index():
             ("fixedNodes" in request.files)
             and request.files["fixedNodes"]
             and request.files["fixedNodes"].filename
-            and (request.files["fixedNodes"].filename.rsplit(".", 1)[-1].lower() == "csv")
+            and (
+                request.files["fixedNodes"].filename.rsplit(".", 1)[-1].lower() == "csv"
+            )
         ):
             session["csv"] = 1
             fullfilename = os.path.join(app.config["UPLOADS_FOLDER"], "curr.csv")
@@ -68,21 +61,29 @@ def run_simulation():
     if uploaded_file.filename == "":
         return jsonify({"success": False, "error": "No file selected"}), 400
 
-    if not uploaded_file.filename or not uploaded_file.filename.lower().endswith(".glm"):
+    if not uploaded_file.filename or not uploaded_file.filename.lower().endswith(
+        ".glm"
+    ):
         return jsonify({"success": False, "error": "File must be a GLM file"}), 400
 
     try:
         # Get randomseed from request or use default
         randomseed = request.form.get("randomseed", 42)
-        
+
         # Prepare file for backend
         files = {
-            "file": (uploaded_file.filename, uploaded_file.stream, "application/octet-stream")
+            "file": (
+                uploaded_file.filename,
+                uploaded_file.stream,
+                "application/octet-stream",
+            )
         }
         form_data = {"randomseed": randomseed}
 
         # Call the backend service
-        response = requests.patch(f"{BACKEND_GRIDLABD_URL}/run", files=files, data=form_data)
+        response = requests.patch(
+            f"{BACKEND_GRIDLABD_URL}/run", files=files, data=form_data
+        )
 
         if response.status_code == 200:
             result = response.json()
@@ -98,31 +99,50 @@ def run_simulation():
                         if file.endswith(".glm"):
                             output_files.append(file)
 
-                return jsonify({
-                    "success": True,
-                    "message": "GridLAB-D simulation completed successfully",
-                    "output_file": output_files[-1] if output_files else "No output file",
-                    "stdout": result["stdout"],
-                    "stderr": result["stderr"],
-                })
+                return jsonify(
+                    {
+                        "success": True,
+                        "message": "GridLAB-D simulation completed successfully",
+                        "output_file": (
+                            output_files[-1] if output_files else "No output file"
+                        ),
+                        "stdout": result["stdout"],
+                        "stderr": result["stderr"],
+                    }
+                )
             else:
-                return jsonify({
-                    "success": False,
-                    "error": f"GridLAB-D simulation failed: {result['stderr']}",
-                    "stdout": result["stdout"],
-                    "stderr": result["stderr"],
-                }), 400
+                return (
+                    jsonify(
+                        {
+                            "success": False,
+                            "error": f"GridLAB-D simulation failed: {result['stderr']}",
+                            "stdout": result["stdout"],
+                            "stderr": result["stderr"],
+                        }
+                    ),
+                    400,
+                )
         else:
-            return jsonify({
-                "success": False,
-                "error": f"Backend service error: {response.text}",
-            }), 500
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Backend service error: {response.text}",
+                    }
+                ),
+                500,
+            )
 
     except requests.exceptions.ConnectionError:
-        return jsonify({
-            "success": False,
-            "error": "Could not connect to backend-gridlabd service",
-        }), 503
+        return (
+            jsonify(
+                {
+                    "success": False,
+                    "error": "Could not connect to backend-gridlabd service",
+                }
+            ),
+            503,
+        )
     except Exception as e:
         return jsonify({"success": False, "error": f"Unexpected error: {str(e)}"}), 500
 
@@ -142,7 +162,10 @@ def load_cache_data():
     file_path = os.path.join(cache_dir, filename)
 
     if not os.path.isfile(file_path):
-        return jsonify({"success": False, "error": f"File {filename} not found in cache"}), 404
+        return (
+            jsonify({"success": False, "error": f"File {filename} not found in cache"}),
+            404,
+        )
 
     try:
         # Copy the cache file to current working file
@@ -153,14 +176,19 @@ def load_cache_data():
         session["glm_name"] = filename
         session.pop("csv", None)  # Clear CSV session if any
 
-        return jsonify({
-            "success": True,
-            "message": f"Loaded {filename} from cache",
-            "filename": filename,
-        })
+        return jsonify(
+            {
+                "success": True,
+                "message": f"Loaded {filename} from cache",
+                "filename": filename,
+            }
+        )
 
     except Exception as e:
-        return jsonify({"success": False, "error": f"Error loading file: {str(e)}"}), 500
+        return (
+            jsonify({"success": False, "error": f"Error loading file: {str(e)}"}),
+            500,
+        )
 
 
 @app.route("/list_cache_files")
@@ -202,7 +230,7 @@ def get_node_details():
             return jsonify({"error": "No GLM file loaded"}), 404
 
         # Parse the GLM file to get detailed object information
-        objs, modules, commands = GLMparser.readGLM(glm_file_path)
+        objs, modules, commands = parser.readGLM(glm_file_path)
 
         # Find the node object(s) with the given name
         node_objects = [obj for obj in objs if obj.get("name") == node_name]
@@ -223,26 +251,35 @@ def get_node_details():
         # Find connected elements (lines, transformers, etc.)
         connections = []
         link_types = [
-            "overhead_line", "switch", "underground_line", "regulator",
-            "transformer", "triplex_line", "fuse"
+            "overhead_line",
+            "switch",
+            "underground_line",
+            "regulator",
+            "transformer",
+            "triplex_line",
+            "fuse",
         ]
 
         for obj in objs:
             if obj.get("class") in link_types:
                 if obj.get("from") == node_name:
-                    connections.append({
-                        "name": obj.get("to", "Unknown"),
-                        "type": "to",
-                        "linkType": obj.get("class"),
-                        "object": obj,
-                    })
+                    connections.append(
+                        {
+                            "name": obj.get("to", "Unknown"),
+                            "type": "to",
+                            "linkType": obj.get("class"),
+                            "object": obj,
+                        }
+                    )
                 elif obj.get("to") == node_name:
-                    connections.append({
-                        "name": obj.get("from", "Unknown"),
-                        "type": "from",
-                        "linkType": obj.get("class"),
-                        "object": obj,
-                    })
+                    connections.append(
+                        {
+                            "name": obj.get("from", "Unknown"),
+                            "type": "from",
+                            "linkType": obj.get("class"),
+                            "object": obj,
+                        }
+                    )
 
         # Extract properties from the main node (excluding metadata)
         properties = {}
@@ -272,7 +309,8 @@ def get_node_details():
             "connections": connections if connections else None,
             "children": (
                 [child.get("class") for child in child_objects]
-                if child_objects else None
+                if child_objects
+                else None
             ),
         }
 
@@ -304,7 +342,7 @@ def get_link_details():
             return jsonify({"error": "No GLM file loaded"}), 404
 
         # Parse the GLM file to get detailed object information
-        objs, modules, commands = GLMparser.readGLM(glm_file_path)
+        objs, modules, commands = parser.readGLM(glm_file_path)
 
         # Find the link object with the given from/to nodes
         link_objects = []
@@ -316,16 +354,27 @@ def get_link_details():
                 link_objects.append(obj)
 
         if not link_objects:
-            return jsonify({
-                "error": f"Link between {source_node} and {target_node} not found"
-            }), 404
+            return (
+                jsonify(
+                    {"error": f"Link between {source_node} and {target_node} not found"}
+                ),
+                404,
+            )
 
         # Get the main link object
         main_link = link_objects[0]
 
         # Extract properties from the main link (excluding metadata)
         properties = {}
-        excluded_keys = {"name", "class", "startLine", "name_oldGLM", "parent", "from", "to"}
+        excluded_keys = {
+            "name",
+            "class",
+            "startLine",
+            "name_oldGLM",
+            "parent",
+            "from",
+            "to",
+        }
 
         for key, value in main_link.items():
             if key not in excluded_keys:
@@ -368,7 +417,11 @@ def get_simulation_results():
 
             for obj_name, obj_data in objects.items():
                 if obj_data.get("class") in [
-                    "node", "load", "meter", "triplex_meter", "triplex_node"
+                    "node",
+                    "load",
+                    "meter",
+                    "triplex_meter",
+                    "triplex_node",
                 ]:
                     # Extract voltage data
                     voltage_A = obj_data.get("voltage_A", "0+0j V")
@@ -408,7 +461,8 @@ def get_simulation_results():
                     nominal_voltage = 2401.78
                     voltage_percent = (
                         (voltage_magnitude / nominal_voltage) * 100
-                        if voltage_magnitude > 0 else 0
+                        if voltage_magnitude > 0
+                        else 0
                     )
 
                     result_row = {
@@ -427,13 +481,15 @@ def get_simulation_results():
                     }
                     results.append(result_row)
 
-            return jsonify({
-                "success": True,
-                "source": "json",
-                "file": json_files[0],
-                "results": results,
-                "total_nodes": len(results),
-            })
+            return jsonify(
+                {
+                    "success": True,
+                    "source": "json",
+                    "file": json_files[0],
+                    "results": results,
+                    "total_nodes": len(results),
+                }
+            )
 
         else:
             return jsonify({"error": "No simulation results found"}), 404
@@ -447,26 +503,31 @@ def data():
     """Legacy endpoint for visualization data"""
     glmFile = os.path.join(app.config["UPLOADS_FOLDER"], "curr.glm")
     csvFile = os.path.join(app.config["UPLOADS_FOLDER"], "curr.csv")
-    
+
     if "csv" in session and session["csv"] and os.path.isfile(csvFile):
         fixedNodesJSON = parseFixedNodes(csvFile)
     else:
         fixedNodesJSON = '{"names":[], "x":[], "y":[]}'
-    
+
     if os.path.isfile(glmFile):
-        objs, modules, commands = GLMparser.readGLM(glmFile)
-        graphJSON = GLMparser.createD3JSON(objs)
+        objs, modules, commands = parser.readGLM(glmFile)
+        graphJSON = parser.createD3JSON(objs)
     else:
         graphJSON = '{"nodes":[],"links":[]}'
-    
+
     if "glm_name" in session:
         glm_name = session["glm_name"]
     else:
         glm_name = ""
-    
+
     JSONstr = (
-        '{"file":"' + glm_name + '","graph":' + graphJSON + 
-        ',"fixedNodes":' + fixedNodesJSON + "}"
+        '{"file":"'
+        + glm_name
+        + '","graph":'
+        + graphJSON
+        + ',"fixedNodes":'
+        + fixedNodesJSON
+        + "}"
     )
 
     return JSONstr

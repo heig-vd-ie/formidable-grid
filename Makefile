@@ -16,10 +16,10 @@ start: ## Build and start the Docker containers
 	@$(MAKE) _build
 	@$(MAKE) _start
 
-start-dev: ## Start Native service GLM plotter (the docker should be first stopped)
+start-dev: ## Start Native service frontend (the docker should be first stopped)
 	@export DEV=true && \
-		cd frontend-gridlabd/glm-plotter && \
-		python glm-plotter.py
+		cd frontend-gridlabd/src && \
+		python main.py
 
 stop: ## Stop the Docker containers
 	docker compose -f $(COMPOSE_FILE) stop
