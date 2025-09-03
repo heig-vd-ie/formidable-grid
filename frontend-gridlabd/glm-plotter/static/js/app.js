@@ -1,7 +1,7 @@
-// GridLAB-D Network Plotter Application
+// GridLAB-D Network Plotter Application - Streamlined Version
 function gridLabApp() {
     return {
-        // Application State
+        // Core Application State
         selectedFile: null,
         randomSeed: 42,
         selectedCache: '',
@@ -11,6 +11,8 @@ function gridLabApp() {
         visualizationLoaded: false,
         simulationResult: '',
         simulationSuccess: false,
+        
+        // Advanced Options State
         nodeSearchTerm: '',
         gravityValue: 0.05,
         
@@ -35,8 +37,6 @@ function gridLabApp() {
         // Detail modal state
         showDetailModal: false,
         selectedNodeDetails: null,
-        showLinkModal: false,
-        selectedLinkDetails: null,
         showResultsModal: false,
         simulationResults: null,
         resultsLoading: false,
@@ -46,7 +46,7 @@ function gridLabApp() {
             this.loadCacheFiles();
         },
 
-        // File handling
+        // CORE FUNCTIONALITY 1: Load GLM File
         handleFileUpload(event) {
             const file = event.target.files[0];
             this.selectedFile = file;
@@ -55,19 +55,7 @@ function gridLabApp() {
             }
         },
 
-        // Cache file management
-        async loadCacheFiles() {
-            try {
-                const response = await fetch('/list_cache_files');
-                const data = await response.json();
-                this.cacheFiles = data.files || [];
-            } catch (error) {
-                console.error('Error loading cache files:', error);
-                this.cacheFiles = [];
-            }
-        },
-
-        // Simulation
+        // CORE FUNCTIONALITY 2: Run Simulation
         async runSimulation() {
             if (!this.selectedFile) return;
             
@@ -102,7 +90,18 @@ function gridLabApp() {
             }
         },
 
-        // Visualization
+        // CORE FUNCTIONALITY 3: Load Results from Cache
+        async loadCacheFiles() {
+            try {
+                const response = await fetch('/list_cache_files');
+                const data = await response.json();
+                this.cacheFiles = data.files || [];
+            } catch (error) {
+                console.error('Error loading cache files:', error);
+                this.cacheFiles = [];
+            }
+        },
+
         async loadVisualization() {
             if (!this.selectedCache) return;
             
@@ -139,6 +138,8 @@ function gridLabApp() {
             }
         },
 
+        // CORE FUNCTIONALITY 4: Advanced Options
+        
         // Zoom controls
         zoomIn() {
             if (window.zoom) {
@@ -166,7 +167,7 @@ function gridLabApp() {
             }
         },
 
-        // Advanced options
+        // Export coordinates
         saveXY() {
             if (typeof window.saveXY === 'function') {
                 window.saveXY();
@@ -183,6 +184,7 @@ function gridLabApp() {
             }
         },
 
+        // Node search
         searchNode() {
             if (typeof window.nodeSearcher === 'function') {
                 document.getElementById('nodeSearchNm').value = this.nodeSearchTerm;
@@ -192,6 +194,7 @@ function gridLabApp() {
             }
         },
 
+        // Gravity control
         changeGravity() {
             if (typeof window.changeGravity === 'function') {
                 document.getElementById('gravityVal').value = this.gravityValue;
@@ -243,7 +246,7 @@ function gridLabApp() {
             this.applyLegendFilters();
         },
 
-        // Detail modal functions
+        // Detail modal functions (Advanced)
         showNodeDetails(nodeData) {
             this.selectedNodeDetails = nodeData;
             this.showDetailModal = true;
@@ -254,15 +257,27 @@ function gridLabApp() {
             this.selectedNodeDetails = null;
         },
 
-        // Link details functions
-        showLinkDetails(linkData) {
-            this.selectedLinkDetails = linkData;
-            this.showLinkModal = true;
-        },
-
-        closeLinkModal() {
-            this.showLinkModal = false;
-            this.selectedLinkDetails = null;
+        async fetchNodeDetails(nodeName) {
+            try {
+                const response = await fetch('/get_node_details', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ node_name: nodeName })
+                });
+                
+                if (response.ok) {
+                    return await response.json();
+                } else {
+                    console.error('Failed to fetch node details');
+                    return null;
+                }
+                
+            } catch (error) {
+                console.error('Error fetching node details:', error);
+                return null;
+            }
         },
 
         async fetchLinkDetails(sourceNode, targetNode, linkType) {
@@ -280,57 +295,13 @@ function gridLabApp() {
                 });
                 
                 if (response.ok) {
-                    const details = await response.json();
-                    return details;
+                    return await response.json();
                 } else {
                     console.error('Failed to fetch link details');
                     return null;
                 }
             } catch (error) {
                 console.error('Error fetching link details:', error);
-                return null;
-            }
-        },
-
-        async fetchNodeDetails(nodeName) {
-            try {
-                // Fetch both GLM details and simulation data
-                const [detailsResponse, simulationResponse] = await Promise.all([
-                    fetch('/get_node_details', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ node_name: nodeName })
-                    }),
-                    fetch('/get_node_simulation_data', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ node_name: nodeName })
-                    })
-                ]);
-                
-                let details = null;
-                let simulationData = null;
-                
-                if (detailsResponse.ok) {
-                    details = await detailsResponse.json();
-                }
-                
-                if (simulationResponse.ok) {
-                    const simResult = await simulationResponse.json();
-                    simulationData = simResult.simulation_data;
-                }
-                
-                return {
-                    ...details,
-                    simulationData: simulationData
-                };
-                
-            } catch (error) {
-                console.error('Error fetching node details:', error);
                 return null;
             }
         },
@@ -345,7 +316,7 @@ function gridLabApp() {
             return value;
         },
 
-        // Simulation results functions
+        // Simulation results functions (Advanced)
         async showAllSimulationResults() {
             this.resultsLoading = true;
             this.showResultsModal = true;
