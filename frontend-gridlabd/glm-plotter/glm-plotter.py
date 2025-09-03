@@ -9,7 +9,20 @@ app.secret_key = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
 
 NATIVE_PORT = os.getenv("FRONTEND_GRIDLABD_NATIVE_PORT", "5001")
 BACKEND_GRIDLABD_PORT = os.getenv("BACKEND_GRIDLABD_PORT", "4600")
-BACKEND_GRIDLABD_URL = f"http://0.0.0.0:{BACKEND_GRIDLABD_PORT}"
+if os.getenv("DEV", "").lower() == "true":
+    UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/uploads")
+    MODELS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/models")
+    BACKEND_GRIDLABD_URL = f"http://localhost:{BACKEND_GRIDLABD_PORT}"
+else:
+    UPLOADS_FOLDER = os.getenv("UPLOADS_FOLDER")
+    MODELS_FOLDER = os.getenv("MODELS_FOLDER")
+    BACKEND_GRIDLABD_URL = f"http://backend-gridlabd:{BACKEND_GRIDLABD_PORT}"
+
+app.config["UPLOADS_FOLDER"] = UPLOADS_FOLDER
+app.config["MODELS_FOLDER"] = MODELS_FOLDER
+
+os.makedirs(app.config["UPLOADS_FOLDER"], exist_ok=True)
+os.makedirs(app.config["MODELS_FOLDER"], exist_ok=True)
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -62,7 +75,6 @@ def run_simulation():
     try:
         # Get randomseed from request or use default
         randomseed = request.form.get("randomseed", 42)
-        print(f"Using randomseed: {randomseed}")
         # Prepare file for backend
         files = {
             "file": (
@@ -71,7 +83,6 @@ def run_simulation():
                 "application/octet-stream",
             )
         }
-        print(f"Prepared files for backend: {files}")
 
         form_data = {"randomseed": randomseed}
 
@@ -840,15 +851,6 @@ def parseFixedNodes(nodesFile):
 
     return json.dumps({"names": names, "x": x, "y": y})
 
-
-UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/uploads")
-MODELS_FOLDER = os.path.join(os.path.dirname(__file__), "../../.cache/models")
-
-app.config["UPLOADS_FOLDER"] = UPLOADS_FOLDER
-app.config["MODELS_FOLDER"] = MODELS_FOLDER
-
-os.makedirs(app.config["UPLOADS_FOLDER"], exist_ok=True)
-os.makedirs(app.config["MODELS_FOLDER"], exist_ok=True)
 
 if __name__ == "__main__":
     app.run(port=int(NATIVE_PORT), host="0.0.0.0", debug=True)

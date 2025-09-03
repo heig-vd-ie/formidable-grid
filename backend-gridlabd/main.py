@@ -6,7 +6,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 
 api = FastAPI()
 
-MODELS_FOLDER = Path(os.getenv("MODELS_FOLDER", ""))
+MODELS_FOLDER = os.getenv("MODELS_FOLDER")
 
 
 @api.get("/")
@@ -20,7 +20,9 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
         if file.filename is None:
             raise HTTPException(status_code=400, detail="No file uploaded")
         # Save uploaded file to the mounted folder
-        file_path_docker = MODELS_FOLDER / file.filename
+        if not isinstance(MODELS_FOLDER, str):
+            raise ValueError("MODELS_FOLDER environment variable is not set")
+        file_path_docker = Path(MODELS_FOLDER) / file.filename
         with file_path_docker.open("wb") as f:
             shutil.copyfileobj(file.file, f)
 
@@ -32,7 +34,7 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
                 "-D",
                 "randomseed={}".format(randomseed),
             ],
-            cwd=MODELS_FOLDER,
+            cwd=Path(MODELS_FOLDER),
             capture_output=True,
             text=True,
         )
