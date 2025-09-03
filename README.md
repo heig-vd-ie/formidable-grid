@@ -1,12 +1,17 @@
-# {{PROJECT_NAME}}
+# Formidable-Grid
 
-Author: {{AUTHOR}}
+Author: Mohammad Rayati
 
-License: {{LICENSE}}
+## Init project
 
 1. You need to install `make`: `sudo apt update && sudo apt install make`
-2. Then, run `make setup-project` and `make venv-activate`
+2. Then, run `make install-all` or `make venv-activate` if everything is already installed.
 3. If you delete your `.venv`, you can run `make install-all` to install everything from beginning.
 
-README of the project should be written here.
+## Install GridLab-d
+
+Use docker for installing project of [GridLab-D](https://github.com/gridlab-d/gridlab-d):
+```sh
+make start
+```
 
