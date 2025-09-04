@@ -6,13 +6,13 @@
   "typescript.inlayHints.parameterTypes.enabled": true,
   "typescript.inlayHints.propertyDeclarationTypes.enabled":true,
   "terminal.integrated.env.osx": {
-    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd:${workspaceFolder}/frontend-gridlabd/src:${workspaceFolder}/frontend-gridlabd/src/parser",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.env.linux": {
-    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd:${workspaceFolder}/frontend-gridlabd/src:${workspaceFolder}/frontend-gridlabd/src/parser",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.env.windows": {
-    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd:${workspaceFolder}/frontend-gridlabd/src:${workspaceFolder}/frontend-gridlabd/src/parser",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.fontSize": 12,
   "explorer.autoReveal": false,
