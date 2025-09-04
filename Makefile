@@ -39,8 +39,8 @@ kill-port: ## Kill any process running on the specified port
 		kill -9 $$(lsof -ti :"$(PORT)"); \
 	fi
 
-fix-permission: ## Fix permissions for the uploads and models directories
+fix-permission: ## Fix permissions for the cache directories
 	@echo "Fixing permissions for uploads and models directories"
-	@sudo mkdir -p $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
-	@sudo chown -R $$(whoami):$(whoami) $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
-	@sudo chmod -R 755 $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE)
+	@sudo mkdir -p $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE) $(OUTPUT_FOLDER_NATIVE)
+	@sudo chown -R $$(whoami):$(whoami) $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE) $(OUTPUT_FOLDER_NATIVE)
+	@sudo chmod -R 755 $(UPLOADS_FOLDER_NATIVE) $(MODELS_FOLDER_NATIVE) $(OUTPUT_FOLDER_NATIVE)

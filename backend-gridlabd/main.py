@@ -7,6 +7,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException
 api = FastAPI()
 
 MODELS_FOLDER = os.getenv("MODELS_FOLDER")
+OUTPUT_FOLDER = os.getenv("OUTPUT_FOLDER")
 
 
 @api.get("/")
@@ -14,14 +15,16 @@ def hello():
     return {"message": "Welcome from GridLabD APIs!"}
 
 
-@api.patch("/run")
-async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
+@api.patch("/run-powerflow")
+async def run_powerflow(file: UploadFile = File(...), randomseed: int = 42):
     try:
         if file.filename is None:
             raise HTTPException(status_code=400, detail="No file uploaded")
         # Save uploaded file to the mounted folder
-        if not isinstance(MODELS_FOLDER, str):
-            raise ValueError("MODELS_FOLDER environment variable is not set")
+        if not isinstance(MODELS_FOLDER, str) or not isinstance(OUTPUT_FOLDER, str):
+            raise ValueError(
+                "MODELS_FOLDER or OUTPUT_FOLDER environment variable is not set"
+            )
         file_path_docker = Path(MODELS_FOLDER) / file.filename
         with file_path_docker.open("wb") as f:
             shutil.copyfileobj(file.file, f)
@@ -33,11 +36,16 @@ async def run_gridlabd(file: UploadFile = File(...), randomseed: int = 42):
                 str(file_path_docker),
                 "-D",
                 "randomseed={}".format(randomseed),
+                "-o",
+                str(Path(OUTPUT_FOLDER) / f"{Path(file.filename).stem}.json"),
             ],
-            cwd=Path(MODELS_FOLDER),
+            cwd=Path(OUTPUT_FOLDER),
             capture_output=True,
             text=True,
         )
+        stray_json = Path(MODELS_FOLDER) / (Path(file_path_docker).stem + ".json")
+        if stray_json.exists():
+            os.remove(stray_json)
 
         return {
             "returncode": result.returncode,

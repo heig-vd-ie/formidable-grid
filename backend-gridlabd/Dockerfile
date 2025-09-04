@@ -21,6 +21,7 @@ RUN poetry install --extras "internal"
 COPY backend-gridlabd/main.py /app/src/
 
 RUN mkdir -p /app/models && chown -R 1000:1000 /app/models
+RUN mkdir -p /app/output && chown -R 1000:1000 /app/output
 
 EXPOSE ${SERVER_PORT}
 

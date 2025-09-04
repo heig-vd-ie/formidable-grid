@@ -23,7 +23,7 @@ def test_run_gridlabd_creates_output_file():
 
     with open(dummy_glm, "rb") as f:
         response = requests.patch(
-            f"{url}/run", files={"file": ("test.glm", f, "text/plain")}
+            f"{url}/run-powerflow", files={"file": ("test.glm", f, "text/plain")}
         )
 
     assert response.status_code == 200
@@ -45,7 +45,7 @@ def test_run_gridlabd_123_node():
 
     with open(OUTPUT_FOLDER.joinpath("test.glm"), "rb") as f:
         response = requests.patch(
-            f"{url}/run", files={"file": ("test.glm", f, "text/plain")}
+            f"{url}/run-powerflow", files={"file": ("test.glm", f, "text/plain")}
         )
 
     assert response.status_code == 200

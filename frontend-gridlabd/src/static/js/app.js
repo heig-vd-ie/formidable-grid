@@ -67,7 +67,7 @@ function gridLabApp() {
                 formData.append('file', this.selectedFile);
                 formData.append('randomseed', this.randomSeed || '42');
 
-                const response = await fetch('/run_simulation', {
+                const response = await fetch('/run-powerflow', {
                     method: 'POST',
                     body: formData
                 });
