@@ -294,6 +294,58 @@ function gridLabApp() {
             this.showDetailModal = true;
         },
 
+        showLinkDetails(linkData) {
+            // For links, we'll fetch the link details and show them in the modal
+            this.fetchLinkDetailsAndShow(linkData);
+        },
+
+        async fetchLinkDetailsAndShow(linkData) {
+            try {
+                const loadingLinkData = {
+                    ...linkData,
+                    type: 'link',
+                    loading: true,
+                    name: `${linkData.linkType} (${linkData.source} → ${linkData.target})`
+                };
+                
+                this.selectedNodeDetails = loadingLinkData;
+                this.showDetailModal = true;
+
+                const details = await this.fetchLinkDetails(linkData.source, linkData.target, linkData.linkType);
+                
+                if (details && details.success) {
+                    const linkDetails = {
+                        ...linkData,
+                        type: 'link',
+                        loading: false,
+                        name: `${linkData.linkType} (${linkData.source} → ${linkData.target})`,
+                        properties: details.properties || {},
+                        class: linkData.linkType
+                    };
+                    this.selectedNodeDetails = linkDetails;
+                } else {
+                    const errorLinkData = {
+                        ...linkData,
+                        type: 'link',
+                        loading: false,
+                        error: 'Failed to fetch link details',
+                        name: `${linkData.linkType} (${linkData.source} → ${linkData.target})`
+                    };
+                    this.selectedNodeDetails = errorLinkData;
+                }
+            } catch (error) {
+                console.error('Error fetching link details:', error);
+                const errorLinkData = {
+                    ...linkData,
+                    type: 'link',
+                    loading: false,
+                    error: error.message,
+                    name: `${linkData.linkType} (${linkData.source} → ${linkData.target})`
+                };
+                this.selectedNodeDetails = errorLinkData;
+            }
+        },
+
         closeDetailModal() {
             this.showDetailModal = false;
             this.selectedNodeDetails = null;

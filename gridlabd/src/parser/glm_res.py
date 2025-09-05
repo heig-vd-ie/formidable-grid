@@ -174,6 +174,7 @@ def get_link_details():
 
         # Prepare response
         response_data = {
+            "success": True,
             "name": main_link.get("name", f"{source_node}-{target_node}"),
             "class": main_link.get("class"),
             "from": main_link.get("from"),
