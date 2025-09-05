@@ -1,47 +1,35 @@
-networks:
-  formidable-grid-network:
-    driver: bridge
-
 services:
   backend-gridlabd:
     build:
       context: .
-      dockerfile: backend-gridlabd/Dockerfile
+      dockerfile: Dockerfile.arras
     container_name: backend-gridlabd
     environment:
-      - SERVER_PORT=${BACKEND_GRIDLABD_PORT}
-      - MODELS_FOLDER=${MODELS_FOLDER}
-      - OUTPUT_FOLDER=${OUTPUT_FOLDER}
+      - INPUTS_FOLDER=${INPUTS_FOLDER}
+      - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
     volumes:
-      - ${MODELS_FOLDER_NATIVE}:${MODELS_FOLDER}
-      - ${OUTPUT_FOLDER_NATIVE}:${OUTPUT_FOLDER}
-    ports:
-      - "${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}"
+      - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
+      - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
     user: root
-    networks:
-      - formidable-grid-network
 
-  frontend-gridlabd:
+  gridlabd:
     build:
       context: .
-      dockerfile: frontend-gridlabd/Dockerfile
-    container_name: frontend-gridlabd
+      dockerfile: gridlabd/Dockerfile
+    container_name: gridlabd
     environment:
-      - SERVER_PORT=${FRONTEND_GRIDLABD_PORT}
-      - BACKEND_GRIDLABD_PORT=${BACKEND_GRIDLABD_PORT}
-      - FRONTEND_GRIDLABD_NATIVE_PORT=${FRONTEND_GRIDLABD_NATIVE_PORT}
-      - MODELS_FOLDER=${MODELS_FOLDER}
+      - SERVER_PORT=${SERVER_PORT}
+      - APP_DOCKER_NAME=${APP_DOCKER_NAME}
+      - INPUTS_FOLDER=${INPUTS_FOLDER}
+      - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
       - UPLOADS_FOLDER=${UPLOADS_FOLDER}
-      - OUTPUT_FOLDER=${OUTPUT_FOLDER}
       - DEV=false
     volumes:
-      - ${UPLOADS_FOLDER_NATIVE}:${UPLOADS_FOLDER}
-      - ${MODELS_FOLDER_NATIVE}:${MODELS_FOLDER}
-      - ${OUTPUT_FOLDER_NATIVE}:${OUTPUT_FOLDER}
+      - ./${UPLOADS_FOLDER_NATIVE}:${UPLOADS_FOLDER}
+      - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
+      - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
     ports:
-      - "${FRONTEND_GRIDLABD_PORT}:${FRONTEND_GRIDLABD_PORT}"
+      - "${SERVER_PORT}:${SERVER_PORT}"
     user: root
     depends_on:
       - backend-gridlabd
-    networks:
-      - formidable-grid-network

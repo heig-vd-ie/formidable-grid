@@ -2,7 +2,7 @@ FROM python:3.12.3-slim
 
 WORKDIR /app
 
-COPY frontend-gridlabd/. /app
+COPY gridlabd/. /app
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt

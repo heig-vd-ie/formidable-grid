@@ -175,3 +175,6 @@ cython_debug/
 *.tar
 images/
 mongo-data/
+
+data/outputs
+data/uploads
