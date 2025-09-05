@@ -3,6 +3,7 @@ function gridLabApp() {
     return {
         // Core Application State
         selectedFile: null,
+        selectedFileData: null, // Store file data to avoid stale File object issues
         randomSeed: 42,
         selectedCache: '',
         cacheFiles: [],
@@ -47,32 +48,72 @@ function gridLabApp() {
         },
 
         // CORE FUNCTIONALITY 1: Load GLM File
-        handleFileUpload(event) {
+        async handleFileUpload(event) {
             const file = event.target.files[0];
             this.selectedFile = file;
+            
             if (file) {
                 this.simulationResult = '';
+                this.simulationSuccess = false;
+                
+                // Store file data to avoid stale File object issues
+                try {
+                    this.selectedFileData = {
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                        arrayBuffer: await file.arrayBuffer()
+                    };
+                    console.log('File data stored:', this.selectedFileData.name);
+                } catch (error) {
+                    console.error('Error reading file:', error);
+                    this.selectedFileData = null;
+                }
+            } else {
+                this.selectedFileData = null;
             }
         },
 
         // CORE FUNCTIONALITY 2: Run Simulation
         async runSimulation() {
-            if (!this.selectedFile) return;
+            if (!this.selectedFileData) {
+                this.simulationResult = 'Please select a GLM file first.';
+                return;
+            }
             
             this.loading = true;
             this.simulationResult = '';
+            this.simulationSuccess = false;
             
             try {
+                // Create fresh file from stored data each time
+                const file = new File(
+                    [this.selectedFileData.arrayBuffer], 
+                    this.selectedFileData.name, 
+                    { type: this.selectedFileData.type }
+                );
+                
+                // Create fresh FormData each time
                 const formData = new FormData();
-                formData.append('file', this.selectedFile);
+                formData.append('file', file);
                 formData.append('randomseed', this.randomSeed || '42');
+
+                console.log('Sending request to /run-powerflow with file:', file.name, 'size:', file.size);
 
                 const response = await fetch('/run-powerflow', {
                     method: 'POST',
                     body: formData
                 });
                 
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const result = await response.json();
+                console.log('Response data:', result);
                 
                 if (result.success) {
                     this.simulationResult = `Simulation completed successfully! Output: ${result.output_file}`;
@@ -83,6 +124,7 @@ function gridLabApp() {
                     this.simulationSuccess = false;
                 }
             } catch (error) {
+                console.error('Simulation error:', error);
                 this.simulationResult = `Error: ${error.message}`;
                 this.simulationSuccess = false;
             } finally {

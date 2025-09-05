@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, session
 from konfig import *
 from app import *
 from parser import *
+from parser.glm_folders import get_data
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
@@ -66,6 +67,11 @@ def get_link_details_endpoint():
 @app.route("/get_simulation_results", methods=["GET"])
 def get_simulation_results_endpoint():
     return get_simulation_results()
+
+
+@app.route("/data", methods=["GET"])
+def get_data_endpoint():
+    return get_data()
 
 
 if __name__ == "__main__":
