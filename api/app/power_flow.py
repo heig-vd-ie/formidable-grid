@@ -26,11 +26,11 @@ def run_powerflow():
             raise ValueError("APP_DOCKER_NAME environment variable is not set")
 
         # Save uploaded file
-        file_path = Path(INPUTS_FOLDER_APP) / uploaded_file.filename
+        file_path = Path(OUTPUTS_FOLDER_APP) / uploaded_file.filename
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with file_path.open("wb") as f:
             shutil.copyfileobj(uploaded_file.stream, f)
-        file_path_docker = Path(INPUTS_FOLDER) / uploaded_file.filename
+        file_path_docker = Path(OUTPUTS_FOLDER) / uploaded_file.filename
 
         # Run GridLAB-D
         try:
@@ -38,17 +38,15 @@ def run_powerflow():
                 [
                     "docker",
                     "exec",
-                    "-it",
+                    "-w",
+                    OUTPUTS_FOLDER,
                     APP_DOCKER_NAME,
                     "gridlabd",
                     str(file_path_docker),
                     "-D",
                     f"randomseed={randomseed}",
                     "-o",
-                    str(
-                        Path(OUTPUTS_FOLDER)
-                        / f"{Path(uploaded_file.filename).stem}.json"
-                    ),
+                    str(Path(OUTPUTS_FOLDER) / f'{Path(uploaded_file.filename).stem}.json'),
                 ],
                 cwd=Path(OUTPUTS_FOLDER_APP),
                 capture_output=True,
@@ -65,10 +63,9 @@ def run_powerflow():
                 500,
             )
 
-        # Remove stray JSON in models folder
-        stray_json = Path(INPUTS_FOLDER_APP) / (Path(file_path_docker).stem + ".json")
-        if stray_json.exists():
-            os.remove(stray_json)
+        # # Remove input file in models folder
+        # if file_path_docker.exists():
+        #     os.remove(file_path_docker)
 
         if result.returncode == 0:
             output_file = str(

@@ -14,7 +14,7 @@ tmux split-window -h -t "$SESSION_NAME:0.1"
 tmux select-layout -t "$SESSION_NAME:0" even-vertical
 
 # Pane 0: 
-tmux send-keys -t "$SESSION_NAME:0.0" "source .envrc && make start" C-m
+tmux send-keys -t "$SESSION_NAME:0.0" "source .envrc && make start && docker exec -it gridlabd sh" C-m
 
 # Pane 1:
 tmux send-keys -t "$SESSION_NAME:0.1" "source .envrc && cd frontend && npm run dev" C-m
@@ -23,7 +23,7 @@ tmux send-keys -t "$SESSION_NAME:0.1" "source .envrc && cd frontend && npm run d
 tmux send-keys -t "$SESSION_NAME:0.2" "source .envrc &&cd frontend && npm run api" C-m
 
 # Focus on the which pane
-tmux select-pane -t "$SESSION_NAME:0.2"
+tmux select-pane -t "$SESSION_NAME:0.0"
 
 # Attach to the session
 tmux attach-session -t "$SESSION_NAME"

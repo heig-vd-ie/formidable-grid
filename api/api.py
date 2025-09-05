@@ -1,5 +1,5 @@
 import time
-from flask import Flask, render_template, request, session, jsonify
+from flask import Flask, request, jsonify
 import os
 import shutil
 from api.konfig import *
