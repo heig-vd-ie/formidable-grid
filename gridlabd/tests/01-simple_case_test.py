@@ -22,7 +22,7 @@ def test_run_gridlabd_creates_output_file():
     dummy_glm.write_text("clock { timezone PST8PDT; }")
 
     with open(dummy_glm, "rb") as f:
-        response = requests.patch(
+        response = requests.post(
             f"{url}/run-powerflow", files={"file": ("test.glm", f, "text/plain")}
         )
 
@@ -44,7 +44,7 @@ def test_run_gridlabd_123_node():
         dummy_glm.write_text(f.read())
 
     with open(OUTPUTS_FOLDER.joinpath("test.glm"), "rb") as f:
-        response = requests.patch(
+        response = requests.post(
             f"{url}/run-powerflow", files={"file": ("test.glm", f, "text/plain")}
         )
 
