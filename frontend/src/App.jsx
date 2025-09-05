@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { Resizer } from './components/Resizer'
 import { EditorPanel } from './components/EditorialPanel'
 import { VisualizationPanel } from './components/VisualizationPanel'
+import * as api from './utils/api'
 import './App.css'
 
 // Main App Component
@@ -17,10 +18,25 @@ function App() {
   const [showRunSuccess, setShowRunSuccess] = useState(false)
   const [showRunError, setShowRunError] = useState(false)
   const [selectedCache, setSelectedCache] = useState('')
-  const [cacheFiles] = useState([]) // Placeholder for cache files
+  const [cacheFiles, setCacheFiles] = useState([])
   const [visualizationLoading, setVisualizationLoading] = useState(false)
   const [visualizationLoaded, setVisualizationLoaded] = useState(false)
   const [editorWidth, setEditorWidth] = useState(400) // Default editor width
+  const [visualizationData, setVisualizationData] = useState(null)
+
+  // Load cache files on component mount
+  useEffect(() => {
+    const loadCacheFiles = async () => {
+      try {
+        const response = await api.listCacheFiles()
+        setCacheFiles(response.files || [])
+      } catch (error) {
+        console.error('Failed to load cache files:', error)
+      }
+    }
+    
+    loadCacheFiles()
+  }, [])
 
   // Event handlers
   const handleToggleEditor = () => {
@@ -31,16 +47,30 @@ function App() {
     setEditorWidth(newWidth)
   }, [])
 
-  const handleFileUpload = (event) => {
+  const handleFileUpload = async (event) => {
     const file = event.target.files[0]
     if (file) {
-      setSelectedFile(file)
-      // In a real implementation, you would read the file content here
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setFileEditorContent(e.target.result)
+      try {
+        // Upload the file to the server
+        const uploadResponse = await api.uploadGLMFile(file)
+        
+        if (uploadResponse.success) {
+          setSelectedFile({
+            name: uploadResponse.filename,
+            originalFile: file
+          })
+          
+          // Read the file content for the editor
+          const readResponse = await api.readGLMFile(uploadResponse.filename)
+          if (readResponse.success) {
+            setFileEditorContent(readResponse.content)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to upload file:', error)
+        setShowSaveError(true)
+        setTimeout(() => setShowSaveError(false), 3000)
       }
-      reader.readAsText(file)
     }
   }
 
@@ -48,37 +78,86 @@ function App() {
     setFileEditorContent(event.target.value)
   }
 
-  const handleSave = () => {
-    // Placeholder for save functionality
+  const handleSave = async () => {
+    if (!selectedFile || !fileEditorContent) return
+    
     setEditorSaving(true)
-    setTimeout(() => {
+    setShowSaveSuccess(false)
+    setShowSaveError(false)
+    
+    try {
+      const response = await api.saveGLMFile(selectedFile.name, fileEditorContent)
+      
+      if (response.success) {
+        setShowSaveSuccess(true)
+        setTimeout(() => setShowSaveSuccess(false), 2000)
+      } else {
+        setShowSaveError(true)
+        setTimeout(() => setShowSaveError(false), 3000)
+      }
+    } catch (error) {
+      console.error('Failed to save file:', error)
+      setShowSaveError(true)
+      setTimeout(() => setShowSaveError(false), 3000)
+    } finally {
       setEditorSaving(false)
-      setShowSaveSuccess(true)
-      setTimeout(() => setShowSaveSuccess(false), 2000)
-    }, 1000)
+    }
   }
 
-  const handleRun = () => {
-    // Placeholder for run functionality
+  const handleRun = async () => {
+    if (!selectedFile || !selectedFile.originalFile) return
+    
     setLoading(true)
-    setTimeout(() => {
+    setShowRunSuccess(false)
+    setShowRunError(false)
+    
+    try {
+      const response = await api.runPowerFlow(selectedFile.originalFile)
+      
+      if (response.success) {
+        setShowRunSuccess(true)
+        setTimeout(() => setShowRunSuccess(false), 2000)
+        
+        // Reload cache files after successful run
+        const cacheResponse = await api.listCacheFiles()
+        setCacheFiles(cacheResponse.files || [])
+      } else {
+        setShowRunError(true)
+        setTimeout(() => setShowRunError(false), 3000)
+      }
+    } catch (error) {
+      console.error('Failed to run simulation:', error)
+      setShowRunError(true)
+      setTimeout(() => setShowRunError(false), 3000)
+    } finally {
       setLoading(false)
-      setShowRunSuccess(true)
-      setTimeout(() => setShowRunSuccess(false), 2000)
-    }, 2000)
+    }
   }
 
   const handleCacheChange = (event) => {
     setSelectedCache(event.target.value)
   }
 
-  const handleLoadVisualization = () => {
-    // Placeholder for load visualization functionality
+  const handleLoadVisualization = async () => {
+    if (!selectedCache) return
+    
     setVisualizationLoading(true)
-    setTimeout(() => {
+    
+    try {
+      // Load the cache data
+      const loadResponse = await api.loadCacheData(selectedCache)
+      
+      if (loadResponse.success) {
+        // Get visualization data
+        const visualData = await api.getVisualizationData()
+        setVisualizationData(visualData)
+        setVisualizationLoaded(true)
+      }
+    } catch (error) {
+      console.error('Failed to load visualization:', error)
+    } finally {
       setVisualizationLoading(false)
-      setVisualizationLoaded(true)
-    }, 1500)
+    }
   }
 
   return (
@@ -111,6 +190,7 @@ function App() {
           editorCollapsed={editorCollapsed}
           onToggleEditor={handleToggleEditor}
           visualizationLoaded={visualizationLoaded}
+          visualizationData={visualizationData}
         />
       </div>
     </div>

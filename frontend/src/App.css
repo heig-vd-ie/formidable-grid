@@ -478,3 +478,83 @@ html, body {
     grid-template-columns: 1fr;
   }
 }
+
+/* Network visualization styles */
+.network-info {
+  padding: 1rem;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+}
+
+.network-info h3 {
+  margin: 0 0 1rem 0;
+  color: #1f2937;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.network-stats {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border-radius: 0.375rem;
+  min-width: 80px;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.network-data {
+  margin-top: 1.5rem;
+}
+
+.network-data h4 {
+  margin: 0 0 0.75rem 0;
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.network-data pre {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  font-size: 0.75rem;
+  overflow: auto;
+  max-height: 300px;
+  color: #374151;
+}
+
+.error-message {
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
+  margin: 1rem;
+  color: #dc2626;
+}
+
+.error-message p {
+  margin: 0;
+  font-size: 0.875rem;
+}

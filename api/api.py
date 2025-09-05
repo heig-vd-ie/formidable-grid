@@ -15,73 +15,42 @@ def get_current_time():
     return {"time": time.time()}
 
 
-@app.route("/", methods=["GET", "POST"])
-def index():
-    """Main page - handles GLM file uploads"""
-    if request.method == "POST":
-        # Handle CSV file upload for fixed nodes
-        if (
-            ("fixedNodes" in request.files)
-            and request.files["fixedNodes"]
-            and request.files["fixedNodes"].filename
-            and (
-                request.files["fixedNodes"].filename.rsplit(".", 1)[-1].lower() == "csv"
-            )
-        ):
-            session["csv"] = 1
-            fullfilename = os.path.join(UPLOADS_FOLDER_APP, "curr.csv")
-            request.files["fixedNodes"].save(fullfilename)
-
-        # Handle GLM file upload
-        if (
-            ("glm_file" in request.files)
-            and request.files["glm_file"]
-            and request.files["glm_file"].filename
-            and (request.files["glm_file"].filename.rsplit(".", 1)[1] == "glm")
-        ):
-            session.clear()
-            session["glm_name"] = request.files["glm_file"].filename
-            fullfilename = os.path.join(UPLOADS_FOLDER_APP, "curr.glm")
-            request.files["glm_file"].save(fullfilename)
-    return render_template("index.html")
-
-
-@app.route("/run-powerflow", methods=["POST"])
+@app.route("/api/run-powerflow", methods=["POST"])
 def run_powerflow_endpoint():
     return run_powerflow()
 
 
-@app.route("/load_cache_data", methods=["POST"])
+@app.route("/api/load_cache_data", methods=["POST"])
 def load_cache_data_endpoint():
     return load_cache_data()
 
 
-@app.route("/list_cache_files")
+@app.route("/api/list_cache_files", methods=["GET"])
 def list_cache_files_endpoint():
     return list_cache_files()
 
 
-@app.route("/get_node_details", methods=["POST"])
+@app.route("/api/get_node_details", methods=["POST"])
 def get_node_details_endpoint():
     return get_node_details()
 
 
-@app.route("/get_link_details", methods=["POST"])
+@app.route("/api/get_link_details", methods=["POST"])
 def get_link_details_endpoint():
     return get_link_details()
 
 
-@app.route("/get_simulation_results", methods=["GET"])
+@app.route("/api/get_simulation_results", methods=["GET"])
 def get_simulation_results_endpoint():
     return get_simulation_results()
 
 
-@app.route("/data", methods=["GET"])
+@app.route("/api/get_data", methods=["GET"])
 def get_data_endpoint():
     return get_data()
 
 
-@app.route("/read_glm_file", methods=["POST"])
+@app.route("/api/read_glm_file", methods=["POST"])
 def read_glm_file():
     """Read GLM file content for editing"""
     try:
@@ -105,7 +74,7 @@ def read_glm_file():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/save_glm_file", methods=["POST"])
+@app.route("/api/save_glm_file", methods=["POST"])
 def save_glm_file():
     """Save GLM file content after editing"""
     try:
@@ -137,7 +106,7 @@ def save_glm_file():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route("/upload_glm_file", methods=["POST"])
+@app.route("/api/upload_glm_file", methods=["POST"])
 def upload_glm_file():
     """Upload GLM file without running simulation"""
     try:

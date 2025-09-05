@@ -1,7 +1,56 @@
+import { useEffect, useRef } from 'react'
+
 export { VisualizationPanel }
 
 // Visualization Panel Component
-function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoaded }) {
+function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoaded, visualizationData }) {
+  const visualizationRef = useRef(null)
+
+  useEffect(() => {
+    if (visualizationLoaded && visualizationData && visualizationRef.current) {
+      // Clear previous visualization
+      visualizationRef.current.innerHTML = ''
+      
+      try {
+        // Create a simple visualization of the network data
+        renderNetworkVisualization(visualizationData, visualizationRef.current)
+      } catch (error) {
+        console.error('Failed to render visualization:', error)
+        visualizationRef.current.innerHTML = `
+          <div class="error-message">
+            <p>Failed to render visualization: ${error.message}</p>
+          </div>
+        `
+      }
+    }
+  }, [visualizationLoaded, visualizationData])
+
+  const renderNetworkVisualization = (data, container) => {
+    // Create a simple text-based representation of the network
+    // This is a placeholder - you can replace with D3.js or other visualization library
+    const infoDiv = document.createElement('div')
+    infoDiv.className = 'network-info'
+    
+    infoDiv.innerHTML = `
+      <h3>Network: ${data.file || 'Unknown'}</h3>
+      <div class="network-stats">
+        <div class="stat">
+          <span class="stat-label">Nodes:</span>
+          <span class="stat-value">${data.graph?.nodes?.length || 0}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Links:</span>
+          <span class="stat-value">${data.graph?.links?.length || 0}</span>
+        </div>
+      </div>
+      <div class="network-data">
+        <h4>Network Structure:</h4>
+        <pre>${JSON.stringify(data.graph, null, 2)}</pre>
+      </div>
+    `
+    
+    container.appendChild(infoDiv)
+  }
   return (
     <div className="visualization-panel">
       {editorCollapsed && (
@@ -12,7 +61,7 @@ function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoad
         </button>
       )}
       
-      <div id="main" className="visualization-content">
+      <div id="main" className="visualization-content" ref={visualizationRef}>
         {!visualizationLoaded && (
           <div className="visualization-placeholder">
             <div className="placeholder-content">
