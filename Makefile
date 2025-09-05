@@ -17,9 +17,7 @@ start: ## Build and start the Docker containers
 	@$(MAKE) _start
 
 start-dev: ## Start Native service frontend (the docker should be first stopped)
-	@export DEV=true && \
-		cd gridlabd/src && \
-		python main.py
+	@./scripts/start-dev.sh
 
 stop: ## Stop the Docker containers
 	docker compose -f $(COMPOSE_FILE) stop

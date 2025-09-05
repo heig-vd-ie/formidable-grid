@@ -1,13 +1,18 @@
+import time
 from flask import Flask, render_template, request, session, jsonify
 import os
 import shutil
-from konfig import *
-from app import *
-from parser import *
-from parser.glm_folders import get_data
+from api.konfig import *
+from api.app import *
+from api.parser import *
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
+
+@app.route("/api/time")
+def get_current_time():
+    return {"time": time.time()}
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -158,9 +163,3 @@ def upload_glm_file():
 
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
-
-if __name__ == "__main__":
-    if not SERVER_PORT_NATIVE:
-        raise ValueError("SERVER_PORT_NATIVE environment variable is not set")
-    app.run(port=int(SERVER_PORT_NATIVE), host="0.0.0.0", debug=True)

@@ -1,0 +1,11 @@
+#ifmissing "123.glm"
+#model get IEEE/123
+#endif
+#include "123.glm"
+
+// ==============================
+// Outputs
+// ==============================
+#output "voltage_profile.csv" -t profile -o node.voltage_A,node.voltage_B,node.voltage_C
+#output "generation.csv" -t profile -o gen1.P_Out,gen1.Q_Out,gf_inv1.P_Out,gf_inv1.Q_Out
+

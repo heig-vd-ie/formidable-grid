@@ -3,8 +3,8 @@ import shutil
 import json
 import pandas as pd
 from flask import jsonify, request, session
-from parser.glm_inp import readGLM, createD3JSON
-from konfig import *
+from api.parser.glm_inp import readGLM, createD3JSON
+from api.konfig import *
 
 
 def list_cache_files():

@@ -2,24 +2,15 @@ services:
   gridlabd:
     build:
       context: .
-      dockerfile: gridlabd/Dockerfile
+      dockerfile: api/Dockerfile
     container_name: gridlabd
     environment:
-      - APP_DOCKER_NAME=${APP_DOCKER_NAME}
-      - SERVER_PORT_NATIVE=${SERVER_PORT_NATIVE}
-      - SERVER_PORT=${SERVER_PORT}
-      - UPLOADS_FOLDER=${UPLOADS_FOLDER}
       - INPUTS_FOLDER=${INPUTS_FOLDER}
       - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
-      - UPLOADS_FOLDER_NATIVE=${UPLOADS_FOLDER_NATIVE}
       - INPUTS_FOLDER_NATIVE=${INPUTS_FOLDER_NATIVE}
       - OUTPUTS_FOLDER_NATIVE=${OUTPUTS_FOLDER_NATIVE}
-      - DEV=false
     volumes:
-      - ./${UPLOADS_FOLDER_NATIVE}:${UPLOADS_FOLDER}
       - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
       - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
-    ports:
-      - "${SERVER_PORT}:${SERVER_PORT}"
     user: root
 

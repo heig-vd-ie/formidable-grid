@@ -3,7 +3,7 @@ import shutil
 import subprocess
 from pathlib import Path
 from flask import request, jsonify
-from konfig import *
+from api.konfig import *
 
 
 def run_powerflow():
@@ -34,44 +34,26 @@ def run_powerflow():
 
         # Run GridLAB-D
         try:
-            if DEV == "true":
-                result = subprocess.run(
-                    [
-                        "docker",
-                        "exec",
-                        "-it",
-                        APP_DOCKER_NAME,
-                        "gridlabd",
-                        str(file_path_docker),
-                        "-D",
-                        f"randomseed={randomseed}",
-                        "-o",
-                        str(
-                            Path(OUTPUTS_FOLDER)
-                            / f"{Path(uploaded_file.filename).stem}.json"
-                        ),
-                    ],
-                    cwd=Path(OUTPUTS_FOLDER_APP),
-                    capture_output=True,
-                    text=True,
-                )
-            else:
-                result = subprocess.run(
-                    [
-                        "gridlabd",
-                        str(file_path_docker),
-                        "-D",
-                        f"randomseed={randomseed}",
-                        "-o",
-                        str(
-                            Path(OUTPUTS_FOLDER_APP)
-                            / f"{Path(uploaded_file.filename).stem}.json"
-                        ),
-                    ],
-                    cwd=Path(OUTPUTS_FOLDER_APP),
-                    capture_output=True,
-                    text=True,
-                )
+            result = subprocess.run(
+                [
+                    "docker",
+                    "exec",
+                    "-it",
+                    APP_DOCKER_NAME,
+                    "gridlabd",
+                    str(file_path_docker),
+                    "-D",
+                    f"randomseed={randomseed}",
+                    "-o",
+                    str(
+                        Path(OUTPUTS_FOLDER)
+                        / f"{Path(uploaded_file.filename).stem}.json"
+                    ),
+                ],
+                cwd=Path(OUTPUTS_FOLDER_APP),
+                capture_output=True,
+                text=True,
+            )
         except Exception as e:
             return (
                 jsonify(

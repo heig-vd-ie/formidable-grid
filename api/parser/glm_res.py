@@ -1,8 +1,8 @@
 import os
 import json
 from flask import jsonify, request
-from parser.glm_inp import readGLM
-from konfig import *
+from api.parser.glm_inp import readGLM
+from api.konfig import *
 
 
 def get_node_details():
