@@ -12,6 +12,11 @@ function gridLabApp() {
         visualizationLoaded: false,
         simulationResult: '',
         simulationSuccess: false,
+        simulationMessageTimeout: null, // For auto-hiding success messages
+        showRunSuccess: false, // For showing success state on run button
+        showSaveSuccess: false, // For showing success state on save button
+        showRunError: false, // For showing error state on run button
+        showSaveError: false, // For showing error state on save button
         
         // Advanced Options State
         nodeSearchTerm: '',
@@ -48,6 +53,7 @@ function gridLabApp() {
         editorMessage: '',
         editorMessageType: 'success', // 'success' or 'error'
         editorCollapsed: false, // Controls whether editor panel is shown
+        editorMessageTimeout: null, // For auto-hiding editor messages
 
         // Initialize application
         init() {
@@ -99,6 +105,13 @@ function gridLabApp() {
             this.loading = true;
             this.simulationResult = '';
             this.simulationSuccess = false;
+            this.showRunSuccess = false;
+            this.showRunError = false;
+            
+            // Clear any existing timeout
+            if (this.simulationMessageTimeout) {
+                clearTimeout(this.simulationMessageTimeout);
+            }
             
             try {
                 // Create fresh file from stored data each time
@@ -133,15 +146,39 @@ function gridLabApp() {
                 if (result.success) {
                     this.simulationResult = `Simulation completed successfully! Output: ${result.output_file}`;
                     this.simulationSuccess = true;
+                    this.showRunSuccess = true;
                     await this.loadCacheFiles();
+                    
+                    // Auto-hide success state after 3 seconds
+                    this.simulationMessageTimeout = setTimeout(() => {
+                        this.showRunSuccess = false;
+                        this.simulationResult = '';
+                        this.simulationSuccess = false;
+                    }, 3000);
                 } else {
                     this.simulationResult = `Simulation failed: ${result.error}`;
                     this.simulationSuccess = false;
+                    this.showRunSuccess = false;
+                    this.showRunError = true;
+                    
+                    // Auto-hide error state after 5 seconds
+                    this.simulationMessageTimeout = setTimeout(() => {
+                        this.showRunError = false;
+                        this.simulationResult = '';
+                    }, 5000);
                 }
             } catch (error) {
                 console.error('Simulation error:', error);
                 this.simulationResult = `Error: ${error.message}`;
                 this.simulationSuccess = false;
+                this.showRunSuccess = false;
+                this.showRunError = true;
+                
+                // Auto-hide error state after 5 seconds
+                this.simulationMessageTimeout = setTimeout(() => {
+                    this.showRunError = false;
+                    this.simulationResult = '';
+                }, 5000);
             } finally {
                 this.loading = false;
             }
@@ -467,6 +504,13 @@ function gridLabApp() {
 
             this.editorSaving = true;
             this.editorMessage = '';
+            this.showSaveSuccess = false;
+            this.showSaveError = false;
+            
+            // Clear any existing timeout
+            if (this.editorMessageTimeout) {
+                clearTimeout(this.editorMessageTimeout);
+            }
 
             try {
                 const response = await fetch('/save_glm_file', {
@@ -485,6 +529,13 @@ function gridLabApp() {
                 if (result.success) {
                     this.editorMessage = result.message;
                     this.editorMessageType = 'success';
+                    this.showSaveSuccess = true;
+                    
+                    // Auto-hide success state after 3 seconds
+                    this.editorMessageTimeout = setTimeout(() => {
+                        this.showSaveSuccess = false;
+                        this.editorMessage = '';
+                    }, 3000);
                     
                     // Update the selectedFileData with new content
                     const encoder = new TextEncoder();
@@ -506,6 +557,14 @@ function gridLabApp() {
                 console.error('Error saving file:', error);
                 this.editorMessage = `Error saving file: ${error.message}`;
                 this.editorMessageType = 'error';
+                this.showSaveSuccess = false;
+                this.showSaveError = true;
+                
+                // Auto-hide error state after 5 seconds
+                this.editorMessageTimeout = setTimeout(() => {
+                    this.showSaveError = false;
+                    this.editorMessage = '';
+                }, 5000);
             } finally {
                 this.editorSaving = false;
             }
