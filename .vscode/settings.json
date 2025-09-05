@@ -21,8 +21,7 @@
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "python.analysis.extraPaths": [
-    "backend-gridlabd/",
-    "frontend-gridlabd/src/",
+    "gridlabd/src/"
   ],
   "python.analysis.autoImportCompletions": true,
   "jupyter.notebookFileRoot": "${workspaceFolder}/src",
