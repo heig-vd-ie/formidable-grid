@@ -65,8 +65,8 @@ html, body {
   overflow: hidden;
   transition: transform 0.3s ease-out, opacity 0.3s ease-out;
   margin-right: 0.5rem;
-  min-width: 300px;
-  max-width: 60%;
+  min-width: 20%;
+  max-width: 80%;
 }
 
 /* Resizer */
@@ -100,7 +100,7 @@ html, body {
 }
 
 .editor-header {
-  padding: 0.75rem;
+  padding: 0.3rem;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
   display: flex;
@@ -117,7 +117,8 @@ html, body {
 
 .editor-filename {
   font-size: 0.75rem;
-  color: #2563eb;
+  padding-left: 0.5rem;
+  color: #0004ff;
   font-weight: 500;
 }
 
@@ -143,7 +144,7 @@ html, body {
 /* Editor content */
 .editor-content {
   flex-grow: 1;
-  padding: 0.75rem;
+  padding: 0.3rem;
   overflow: hidden;
 }
 
