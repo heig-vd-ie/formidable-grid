@@ -64,7 +64,7 @@ def run_powerflow():
                         f"randomseed={randomseed}",
                         "-o",
                         str(
-                            Path(OUTPUTS_FOLDER)
+                            Path(OUTPUTS_FOLDER_APP)
                             / f"{Path(uploaded_file.filename).stem}.json"
                         ),
                     ],
@@ -84,7 +84,7 @@ def run_powerflow():
             )
 
         # Remove stray JSON in models folder
-        stray_json = Path(OUTPUTS_FOLDER_APP) / (Path(file_path_docker).stem + ".json")
+        stray_json = Path(INPUTS_FOLDER_APP) / (Path(file_path_docker).stem + ".json")
         if stray_json.exists():
             os.remove(stray_json)
 
