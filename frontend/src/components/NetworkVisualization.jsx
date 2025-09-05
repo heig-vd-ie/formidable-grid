@@ -24,15 +24,16 @@ const NetworkVisualization = ({
   // Get dynamic dimensions from the container
   const getDimensions = useCallback(() => {
     if (!containerRef.current) {
-      console.log('No container ref available')
       return { width: 800, height: 600 }
     }
+    
     const containerRect = containerRef.current.getBoundingClientRect()
+    
+    // Use the full container dimensions, with a minimum height
     const dims = {
-      width: Math.max(containerRect.width - 20, 400),
-      height: Math.max(containerRect.height - 20, 300)
+      width: containerRect.width || 800,
+      height: Math.max(containerRect.height, 400) || 600
     }
-    console.log('Container dimensions:', dims, 'from rect:', containerRect)
     return dims
   }, [])
 
@@ -44,10 +45,15 @@ const NetworkVisualization = ({
 
   // Drag start function
   const dragstart = useCallback((event, d) => {
+    if (!d || !forceRef.current) return
+    
     if (!event.active) forceRef.current.alphaTarget(0.3).restart()
     d.fx = d.x
     d.fy = d.y
-    d3.select(event.sourceEvent.currentTarget).classed('fixed', d.fixed = true)
+    
+    if (event.sourceEvent && event.sourceEvent.currentTarget) {
+      d3.select(event.sourceEvent.currentTarget).classed('fixed', d.fixed = true)
+    }
   }, [])
 
   // Node search function
@@ -140,16 +146,11 @@ const NetworkVisualization = ({
 
   // Main visualization loading function
   const loadNetworkVisualization = useCallback(() => {
-    console.log('loadNetworkVisualization called', { visualizationData, svgRef: svgRef.current })
-    
     setError(null) // Clear any previous errors
     
     if (!visualizationData || !svgRef.current) {
-      console.log('Early return - missing data or ref')
       return
     }
-
-    console.log('Visualization data:', visualizationData)
 
     try {
       // Clear existing visualization
@@ -167,11 +168,7 @@ const NetworkVisualization = ({
         .attr('preserveAspectRatio', 'xMidYMid meet')
         .style('background-color', 'transparent')
 
-      console.log('Created SVG with dimensions:', vizWidth, 'x', vizHeight)
-      console.log('SVG element:', svg.node())
-
       const container = svg.append('g').attr('class', 'zoom-container')
-      console.log('Created container:', container.node())
 
       // Setup zoom behavior
       const zoom = d3.zoom()
@@ -183,7 +180,7 @@ const NetworkVisualization = ({
 
       // Initialize force layout (using D3 v6+ syntax)
       const force = d3.forceSimulation()
-        .force('link', d3.forceLink().id(d => d.name).distance(30))
+        .force('link', d3.forceLink().distance(30))
         .force('charge', d3.forceManyBody().strength(-120))
         .force('center', d3.forceCenter(vizWidth / 2, vizHeight / 2))
         .force('collision', d3.forceCollide().radius(15))
@@ -194,37 +191,71 @@ const NetworkVisualization = ({
       const drag = d3.drag()
         .on('start', dragstart)
         .on('drag', (event, d) => {
-          d.fx = event.x
-          d.fy = event.y
+          if (d) {
+            d.fx = event.x
+            d.fy = event.y
+          }
         })
         .on('end', (event, d) => {
           if (!event.active) force.alphaTarget(0)
-          d.fx = null
-          d.fy = null
+          if (d) {
+            d.fx = null
+            d.fy = null
+          }
         })
 
       // Extract data
       const graph = visualizationData.graph
       const fixedNodes = visualizationData.fixedNodes || { names: [], x: [], y: [] }
 
-      console.log('Graph data:', graph)
-      console.log('Nodes:', graph.nodes)
-      console.log('Links:', graph.links)
-
       // Validate data structure
       if (!graph || !graph.nodes || !graph.links) {
-        console.error('Invalid graph data structure:', graph)
         setError('Invalid graph data structure')
         return
       }
 
       if (graph.nodes.length === 0) {
-        console.warn('No nodes in graph data')
         setError('No nodes found in graph data')
         return
       }
 
-      console.log(`Found ${graph.nodes.length} nodes and ${graph.links.length} links`)    // Create links
+      // Validate nodes structure
+      const invalidNodes = graph.nodes.filter((node, index) => {
+        if (typeof node !== 'object' || node === null) {
+          return true
+        }
+        if (!node.name) {
+          return true
+        }
+        return false
+      })
+
+      if (invalidNodes.length > 0) {
+        setError(`Found ${invalidNodes.length} invalid nodes in data`)
+        return
+      }
+
+      // Validate links structure (before D3 processes them)
+      const invalidLinks = graph.links.filter((link, index) => {
+        if (typeof link !== 'object' || link === null) {
+          return true
+        }
+        // Check if source/target are either numbers (initial) or objects (after D3 processing)
+        const sourceValid = (typeof link.source === 'number' && link.source >= 0 && link.source < graph.nodes.length) ||
+                          (typeof link.source === 'object' && link.source !== null)
+        const targetValid = (typeof link.target === 'number' && link.target >= 0 && link.target < graph.nodes.length) ||
+                          (typeof link.target === 'object' && link.target !== null)
+        
+        if (!sourceValid || !targetValid) {
+          return true
+        }
+        return false
+      })
+
+      if (invalidLinks.length > 0) {
+        setError(`Found ${invalidLinks.length} invalid links in data`)
+        return
+      }    // Create links
     const linkSelection = container.selectAll('.link')
       .data(graph.links)
       .enter().append('g')
@@ -232,9 +263,13 @@ const NetworkVisualization = ({
       .on('dblclick', (event, d) => {
         event.stopPropagation()
         if (onLinkDetails) {
+          // Handle both numeric indices and processed node objects
+          const sourceName = typeof d.source === 'object' ? d.source.name : graph.nodes[d.source]?.name
+          const targetName = typeof d.target === 'object' ? d.target.name : graph.nodes[d.target]?.name
+          
           onLinkDetails({
-            source: d.source.name || d.source,
-            target: d.target.name || d.target,
+            source: sourceName,
+            target: targetName,
             linkType: d.linkType,
             type: 'link'
           })
@@ -332,30 +367,62 @@ const NetworkVisualization = ({
     // Start force simulation
     force
       .nodes(graph.nodes)
-      .force('link').links(graph.links)
+    
+    // Set up the link force with the nodes array context
+    force.force('link').links(graph.links)
+    
+    // Verify the simulation is running
+    if (force.alpha() <= 0) {
+      force.alpha(1).restart()
+    }
 
+    // Add error handling for the tick function
     force.on('tick', () => {
-      lines
-        .attr('x1', d => d.source.x)
-        .attr('y1', d => d.source.y)
-        .attr('x2', d => d.target.x)
-        .attr('y2', d => d.target.y)
+      try {
+        lines
+          .attr('x1', d => {
+            const sourceX = typeof d.source === 'object' ? d.source.x : 0
+            return sourceX || 0
+          })
+          .attr('y1', d => {
+            const sourceY = typeof d.source === 'object' ? d.source.y : 0
+            return sourceY || 0
+          })
+          .attr('x2', d => {
+            const targetX = typeof d.target === 'object' ? d.target.x : 0
+            return targetX || 0
+          })
+          .attr('y2', d => {
+            const targetY = typeof d.target === 'object' ? d.target.y : 0
+            return targetY || 0
+          })
 
-      linkLabels
-        .attr('x', d => (d.source.x + d.target.x) / 2 + 8)
-        .attr('y', d => (d.source.y + d.target.y) / 2 + 20)
+        linkLabels
+          .attr('x', d => {
+            const sourceX = typeof d.source === 'object' ? d.source.x : 0
+            const targetX = typeof d.target === 'object' ? d.target.x : 0
+            return (sourceX + targetX) / 2 + 8
+          })
+          .attr('y', d => {
+            const sourceY = typeof d.source === 'object' ? d.source.y : 0
+            const targetY = typeof d.target === 'object' ? d.target.y : 0
+            return (sourceY + targetY) / 2 + 20
+          })
 
-      circles
-        .attr('cx', d => d.x)
-        .attr('cy', d => d.y)
+        circles
+          .attr('cx', d => d.x || 0)
+          .attr('cy', d => d.y || 0)
 
-      labels
-        .attr('x', d => d.x + 8)
-        .attr('y', d => d.y)
+        labels
+          .attr('x', d => (d.x || 0) + 8)
+          .attr('y', d => d.y || 0)
 
-      nodeTypeLabels
-        .attr('x', d => d.x + 8)
-        .attr('y', d => d.y + 20)
+        nodeTypeLabels
+          .attr('x', d => (d.x || 0) + 8)
+          .attr('y', d => (d.y || 0) + 20)
+      } catch (tickError) {
+        // Error in tick function
+      }
     })
 
     // Store references for other functions
@@ -363,7 +430,6 @@ const NetworkVisualization = ({
     linksRef.current = linkSelection
 
     } catch (error) {
-      console.error('Error rendering network visualization:', error)
       setError(error.message)
     }
 
@@ -371,13 +437,15 @@ const NetworkVisualization = ({
 
   // Load visualization when data changes
   useEffect(() => {
-    console.log('NetworkVisualization useEffect triggered', { visualizationData })
-    loadNetworkVisualization()
+    // Add a delay to ensure the container is properly rendered and sized
+    setTimeout(() => {
+      loadNetworkVisualization()
+    }, 200)
   }, [loadNetworkVisualization])
 
   // Debug: log when component mounts
   useEffect(() => {
-    console.log('NetworkVisualization component mounted')
+    // Component mounted
   }, [])
 
   // Update gravity when it changes
@@ -389,6 +457,21 @@ const NetworkVisualization = ({
   useEffect(() => {
     nodeSearcher()
   }, [searchTerm, nodeSearcher])
+
+  // Handle window resize to recalculate dimensions
+  useEffect(() => {
+    const handleResize = () => {
+      if (visualizationData && svgRef.current) {
+        // Delay to allow CSS to update
+        setTimeout(() => {
+          loadNetworkVisualization()
+        }, 100)
+      }
+    }
+
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [visualizationData, loadNetworkVisualization])
 
   if (!visualizationData) {
     return (
@@ -457,19 +540,7 @@ const NetworkVisualization = ({
         </div>
       </div>
 
-      {/* Title */}
-      <h2 className="visualization-title">
-        {visualizationData.file || 'Network Visualization'}
-      </h2>
 
-      {/* Debug info */}
-      <div style={{ padding: '1rem', backgroundColor: '#f0f0f0', fontSize: '12px' }}>
-        <strong>Debug Info:</strong>
-        <div>Nodes: {visualizationData.graph?.nodes?.length || 0}</div>
-        <div>Links: {visualizationData.graph?.links?.length || 0}</div>
-        <div>Fixed Nodes: {visualizationData.fixedNodes?.names?.length || 0}</div>
-        {error && <div style={{ color: 'red' }}>Error: {error}</div>}
-      </div>
 
       {/* Main visualization container */}
       <div className="visualization-container" ref={containerRef}>
