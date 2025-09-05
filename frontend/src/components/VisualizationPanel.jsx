@@ -1,55 +1,37 @@
-import { useEffect, useRef } from 'react'
+import { useState } from 'react'
+import NetworkVisualization from './NetworkVisualization'
 
 export { VisualizationPanel }
 
 // Visualization Panel Component
 function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoaded, visualizationData }) {
-  const visualizationRef = useRef(null)
+  const [selectedNodeDetails, setSelectedNodeDetails] = useState(null)
+  const [selectedLinkDetails, setSelectedLinkDetails] = useState(null)
+  const [showDetailsModal, setShowDetailsModal] = useState(false)
 
-  useEffect(() => {
-    if (visualizationLoaded && visualizationData && visualizationRef.current) {
-      // Clear previous visualization
-      visualizationRef.current.innerHTML = ''
-      
-      try {
-        // Create a simple visualization of the network data
-        renderNetworkVisualization(visualizationData, visualizationRef.current)
-      } catch (error) {
-        console.error('Failed to render visualization:', error)
-        visualizationRef.current.innerHTML = `
-          <div class="error-message">
-            <p>Failed to render visualization: ${error.message}</p>
-          </div>
-        `
-      }
-    }
-  }, [visualizationLoaded, visualizationData])
+  console.log('VisualizationPanel render:', { 
+    visualizationLoaded, 
+    visualizationData: visualizationData ? 'data present' : 'no data',
+    dataKeys: visualizationData ? Object.keys(visualizationData) : null,
+    fullData: visualizationData
+  })
 
-  const renderNetworkVisualization = (data, container) => {
-    // Create a simple text-based representation of the network
-    // This is a placeholder - you can replace with D3.js or other visualization library
-    const infoDiv = document.createElement('div')
-    infoDiv.className = 'network-info'
-    
-    infoDiv.innerHTML = `
-      <h3>Network: ${data.file || 'Unknown'}</h3>
-      <div class="network-stats">
-        <div class="stat">
-          <span class="stat-label">Nodes:</span>
-          <span class="stat-value">${data.graph?.nodes?.length || 0}</span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Links:</span>
-          <span class="stat-value">${data.graph?.links?.length || 0}</span>
-        </div>
-      </div>
-      <div class="network-data">
-        <h4>Network Structure:</h4>
-        <pre>${JSON.stringify(data.graph, null, 2)}</pre>
-      </div>
-    `
-    
-    container.appendChild(infoDiv)
+  const handleNodeDetails = (nodeData) => {
+    setSelectedNodeDetails(nodeData)
+    setSelectedLinkDetails(null)
+    setShowDetailsModal(true)
+  }
+
+  const handleLinkDetails = (linkData) => {
+    setSelectedLinkDetails(linkData)
+    setSelectedNodeDetails(null)
+    setShowDetailsModal(true)
+  }
+
+  const closeDetailsModal = () => {
+    setShowDetailsModal(false)
+    setSelectedNodeDetails(null)
+    setSelectedLinkDetails(null)
   }
   return (
     <div className="visualization-panel">
@@ -61,8 +43,16 @@ function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoad
         </button>
       )}
       
-      <div id="main" className="visualization-content" ref={visualizationRef}>
-        {!visualizationLoaded && (
+      <div className="visualization-content">
+        {visualizationLoaded && visualizationData ? (
+          <div>
+            <NetworkVisualization
+              visualizationData={visualizationData}
+              onNodeDetails={handleNodeDetails}
+              onLinkDetails={handleLinkDetails}
+            />
+          </div>
+        ) : (
           <div className="visualization-placeholder">
             <div className="placeholder-content">
               <svg className="visualization-placeholder-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -77,6 +67,63 @@ function VisualizationPanel({ editorCollapsed, onToggleEditor, visualizationLoad
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {showDetailsModal && (
+        <div className="details-modal-overlay" onClick={closeDetailsModal}>
+          <div className="details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedNodeDetails ? 'Node Details' : 'Link Details'}</h3>
+              <button onClick={closeDetailsModal} className="close-button">×</button>
+            </div>
+            <div className="modal-content">
+              {selectedNodeDetails && (
+                <div className="node-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Name:</span>
+                    <span className="detail-value">{selectedNodeDetails.name}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Class:</span>
+                    <span className="detail-value">{selectedNodeDetails.classNm}</span>
+                  </div>
+                  {selectedNodeDetails.child && (
+                    <div className="detail-row">
+                      <span className="detail-label">Child:</span>
+                      <span className="detail-value">{selectedNodeDetails.child}</span>
+                    </div>
+                  )}
+                  {selectedNodeDetails.position && (
+                    <div className="detail-row">
+                      <span className="detail-label">Position:</span>
+                      <span className="detail-value">
+                        x: {Math.round(selectedNodeDetails.position.x)}, 
+                        y: {Math.round(selectedNodeDetails.position.y)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              {selectedLinkDetails && (
+                <div className="link-details">
+                  <div className="detail-row">
+                    <span className="detail-label">Source:</span>
+                    <span className="detail-value">{selectedLinkDetails.source}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Target:</span>
+                    <span className="detail-value">{selectedLinkDetails.target}</span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">Type:</span>
+                    <span className="detail-value">{selectedLinkDetails.linkType}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
