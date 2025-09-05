@@ -42,6 +42,13 @@ function gridLabApp() {
         simulationResults: null,
         resultsLoading: false,
 
+        // File editor state
+        fileEditorContent: '',
+        editorSaving: false,
+        editorMessage: '',
+        editorMessageType: 'success', // 'success' or 'error'
+        editorCollapsed: false, // Controls whether editor panel is shown
+
         // Initialize application
         init() {
             this.loadCacheFiles();
@@ -55,6 +62,7 @@ function gridLabApp() {
             if (file) {
                 this.simulationResult = '';
                 this.simulationSuccess = false;
+                this.editorMessage = '';
                 
                 // Store file data to avoid stale File object issues
                 try {
@@ -64,13 +72,20 @@ function gridLabApp() {
                         size: file.size,
                         arrayBuffer: await file.arrayBuffer()
                     };
+                    
+                    // Read file content and display in editor
+                    const text = new TextDecoder().decode(this.selectedFileData.arrayBuffer);
+                    this.fileEditorContent = text;
+                    
                     console.log('File data stored:', this.selectedFileData.name);
                 } catch (error) {
                     console.error('Error reading file:', error);
                     this.selectedFileData = null;
+                    this.fileEditorContent = '';
                 }
             } else {
                 this.selectedFileData = null;
+                this.fileEditorContent = '';
             }
         },
 
@@ -441,6 +456,59 @@ function gridLabApp() {
             if (voltagePercent >= 95) return 'text-green-600';
             if (voltagePercent >= 90) return 'text-yellow-600';
             return 'text-red-600';
+        },
+
+        async saveFileContent() {
+            if (!this.selectedFileData || !this.fileEditorContent) {
+                this.editorMessage = 'No content to save';
+                this.editorMessageType = 'error';
+                return;
+            }
+
+            this.editorSaving = true;
+            this.editorMessage = '';
+
+            try {
+                const response = await fetch('/save_glm_file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        filename: this.selectedFileData.name,
+                        content: this.fileEditorContent
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    this.editorMessage = result.message;
+                    this.editorMessageType = 'success';
+                    
+                    // Update the selectedFileData with new content
+                    const encoder = new TextEncoder();
+                    const newArrayBuffer = encoder.encode(this.fileEditorContent);
+                    
+                    this.selectedFileData = {
+                        ...this.selectedFileData,
+                        arrayBuffer: newArrayBuffer,
+                        size: newArrayBuffer.byteLength
+                    };
+                    
+                    // Clear any previous simulation results
+                    this.simulationResult = '';
+                    this.simulationSuccess = false;
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error saving file:', error);
+                this.editorMessage = `Error saving file: ${error.message}`;
+                this.editorMessageType = 'error';
+            } finally {
+                this.editorSaving = false;
+            }
         }
     }
 }

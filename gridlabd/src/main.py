@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, session
+from flask import Flask, render_template, request, session, jsonify
+import os
+import shutil
 from konfig import *
 from app import *
 from parser import *
@@ -72,6 +74,90 @@ def get_simulation_results_endpoint():
 @app.route("/data", methods=["GET"])
 def get_data_endpoint():
     return get_data()
+
+
+@app.route("/read_glm_file", methods=["POST"])
+def read_glm_file():
+    """Read GLM file content for editing"""
+    try:
+        data = request.get_json()
+        filename = data.get("filename")
+
+        if not filename:
+            return jsonify({"success": False, "error": "No filename provided"}), 400
+
+        file_path = os.path.join(UPLOADS_FOLDER_APP, filename)
+
+        if not os.path.exists(file_path):
+            return jsonify({"success": False, "error": "File not found"}), 404
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        return jsonify({"success": True, "content": content, "filename": filename})
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/save_glm_file", methods=["POST"])
+def save_glm_file():
+    """Save GLM file content after editing"""
+    try:
+        data = request.get_json()
+        filename = data.get("filename")
+        content = data.get("content")
+
+        if not filename or content is None:
+            return (
+                jsonify({"success": False, "error": "Filename and content required"}),
+                400,
+            )
+
+        file_path = os.path.join(UPLOADS_FOLDER_APP, filename)
+
+        # Create backup of original file
+        if os.path.exists(file_path):
+            backup_path = file_path + ".backup"
+            shutil.copy2(file_path, backup_path)
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        return jsonify(
+            {"success": True, "message": f"File {filename} saved successfully"}
+        )
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/upload_glm_file", methods=["POST"])
+def upload_glm_file():
+    """Upload GLM file without running simulation"""
+    try:
+        if "file" not in request.files:
+            return jsonify({"success": False, "error": "No file uploaded"}), 400
+
+        uploaded_file = request.files["file"]
+        if not uploaded_file.filename:
+            return jsonify({"success": False, "error": "Empty filename"}), 400
+
+        # Save uploaded file
+        file_path = os.path.join(UPLOADS_FOLDER_APP, uploaded_file.filename)
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        uploaded_file.save(file_path)
+
+        return jsonify(
+            {
+                "success": True,
+                "message": f"File {uploaded_file.filename} uploaded successfully",
+                "filename": uploaded_file.filename,
+            }
+        )
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 if __name__ == "__main__":
