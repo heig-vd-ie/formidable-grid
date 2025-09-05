@@ -2,10 +2,11 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
-from flask import request, jsonify, Config
+from flask import request, jsonify
+from konfig import *
 
 
-def run_powerflow(konfig: Config):
+def run_powerflow():
     """API endpoint for running GridLAB-D simulations"""
     try:
         if "file" not in request.files:
@@ -17,58 +18,99 @@ def run_powerflow(konfig: Config):
 
         randomseed = request.form.get("randomseed", 42)
 
-        if not isinstance(konfig["INPUTS_FOLDER"], str) or not isinstance(
-            konfig["OUTPUTS_FOLDER"], str
-        ):
-            raise ValueError(
-                "INPUTS_FOLDER or OUTPUTS_FOLDER environment variable is not set"
-            )
-
-        if not isinstance(konfig["APP_DOCKER_NAME"], str):
+        if not INPUTS_FOLDER:
+            raise ValueError("INPUTS_FOLDER environment variable is not set")
+        if not OUTPUTS_FOLDER:
+            raise ValueError("OUTPUTS_FOLDER environment variable is not set")
+        if not APP_DOCKER_NAME:
             raise ValueError("APP_DOCKER_NAME environment variable is not set")
 
         # Save uploaded file
-        file_path_docker = Path(konfig["INPUTS_FOLDER"]) / uploaded_file.filename
-        file_path_docker.parent.mkdir(parents=True, exist_ok=True)
-        with file_path_docker.open("wb") as f:
+        file_path = Path(INPUTS_FOLDER_APP) / uploaded_file.filename
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        with file_path.open("wb") as f:
             shutil.copyfileobj(uploaded_file.stream, f)
+        file_path_docker = Path(INPUTS_FOLDER) / uploaded_file.filename
 
         # Run GridLAB-D
-        result = subprocess.run(
-            [
-                "docker",
-                "exec",
-                "-it",
-                konfig["APP_DOCKER_NAME"],
-                "gridlabd",
-                str(file_path_docker),
-                "-D",
-                f"randomseed={randomseed}",
-                "-o",
-                str(
-                    Path(konfig["OUTPUTS_FOLDER"])
-                    / f"{Path(uploaded_file.filename).stem}.json"
+        try:
+            if DEV == "true":
+                result = subprocess.run(
+                    [
+                        "docker",
+                        "exec",
+                        "-it",
+                        APP_DOCKER_NAME,
+                        "gridlabd",
+                        str(file_path_docker),
+                        "-D",
+                        f"randomseed={randomseed}",
+                        "-o",
+                        str(
+                            Path(OUTPUTS_FOLDER)
+                            / f"{Path(uploaded_file.filename).stem}.json"
+                        ),
+                    ],
+                    cwd=Path(OUTPUTS_FOLDER_APP),
+                    capture_output=True,
+                    text=True,
+                )
+            else:
+                result = subprocess.run(
+                    [
+                        "gridlabd",
+                        str(file_path_docker),
+                        "-D",
+                        f"randomseed={randomseed}",
+                        "-o",
+                        str(
+                            Path(OUTPUTS_FOLDER)
+                            / f"{Path(uploaded_file.filename).stem}.json"
+                        ),
+                    ],
+                    cwd=Path(OUTPUTS_FOLDER_APP),
+                    capture_output=True,
+                    text=True,
+                )
+        except Exception as e:
+            return (
+                jsonify(
+                    {
+                        "success": False,
+                        "error": f"Failed to execute GridLAB-D: {str(e)}",
+                    }
                 ),
-            ],
-            cwd=Path(konfig["OUTPUTS_FOLDER"]),
-            capture_output=True,
-            text=True,
-        )
+                500,
+            )
 
         # Remove stray JSON in models folder
-        stray_json = Path(konfig["OUTPUTS_FOLDER"]) / (
-            Path(file_path_docker).stem + ".json"
-        )
+        stray_json = Path(OUTPUTS_FOLDER_APP) / (Path(file_path_docker).stem + ".json")
         if stray_json.exists():
             os.remove(stray_json)
 
-        return jsonify(
-            {
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            }
-        )
+        if result.returncode == 0:
+            output_file = str(
+                Path(OUTPUTS_FOLDER_APP) / f"{Path(uploaded_file.filename).stem}.json"
+            )
+            return jsonify(
+                {
+                    "success": True,
+                    "output_file": output_file,
+                    "returncode": result.returncode,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+            )
+        else:
+            return jsonify(
+                {
+                    "success": False,
+                    "error": f"GridLAB-D execution failed: {result.stderr}",
+                    "returncode": result.returncode,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
+            )
 
     except Exception as e:
         return jsonify({"detail": str(e)}), 500

@@ -1,8 +1,0 @@
-FROM lfenergy/arras:latest
-
-WORKDIR /app
-
-RUN mkdir -p /app/inputs && chown -R 1000:1000 /app/inputs
-RUN mkdir -p /app/outputs && chown -R 1000:1000 /app/outputs
-
-CMD ["tail", "-f", "/dev/null"]

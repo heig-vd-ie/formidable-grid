@@ -1,13 +1,14 @@
 import os
 import shutil
-from flask import jsonify, request, session, Config
+from flask import jsonify, request, session
+from konfig import *
 
 
-def list_cache_files(konfig: Config):
+def list_cache_files():
     """List all GLM files in the cache directory"""
     files = []
 
-    cache_dir = konfig["OUTPUTS_FOLDER"]
+    cache_dir = OUTPUTS_FOLDER_APP
     if os.path.exists(cache_dir):
         for file in os.listdir(cache_dir):
             if file.endswith(".glm"):
@@ -22,7 +23,7 @@ def list_cache_files(konfig: Config):
     return jsonify({"files": files})
 
 
-def load_cache_data(konfig: Config):
+def load_cache_data():
     """Load a GLM file from cache for visualization"""
     data = request.get_json()
     if not data:
@@ -32,7 +33,7 @@ def load_cache_data(konfig: Config):
     if not filename:
         return jsonify({"success": False, "error": "No filename provided"}), 400
 
-    file_path = os.path.join(konfig["OUTPUTS_FOLDER"], filename)
+    file_path = os.path.join(OUTPUTS_FOLDER_APP, filename)
 
     if not os.path.isfile(file_path):
         return (
@@ -42,7 +43,7 @@ def load_cache_data(konfig: Config):
 
     try:
         # Copy the cache file to current working file
-        current_file_path = os.path.join(konfig["UPLOADS_FOLDER"], "curr.glm")
+        current_file_path = os.path.join(UPLOADS_FOLDER_APP, "curr.glm")
         shutil.copy2(file_path, current_file_path)
 
         # Update session

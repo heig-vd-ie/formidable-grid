@@ -1,10 +1,11 @@
 import os
 import json
-from flask import jsonify, request, Config
+from flask import jsonify, request
 from parser.glm_inp import readGLM
+from konfig import *
 
 
-def get_node_details(konfig: Config):
+def get_node_details():
     """Get detailed information about a specific node (Advanced Option)"""
     data = request.get_json()
     if not data:
@@ -16,7 +17,7 @@ def get_node_details(konfig: Config):
 
     try:
         # Load the current GLM file
-        glm_file_path = os.path.join(konfig["UPLOADS_FOLDER"], "curr.glm")
+        glm_file_path = os.path.join(UPLOADS_FOLDER_APP, "curr.glm")
 
         if not os.path.isfile(glm_file_path):
             return jsonify({"error": "No GLM file loaded"}), 404
@@ -112,7 +113,7 @@ def get_node_details(konfig: Config):
         return jsonify({"error": f"Error retrieving node details: {str(e)}"}), 500
 
 
-def get_link_details(konfig: Config):
+def get_link_details():
     """Get detailed information about a specific link/line (Advanced Option)"""
     data = request.get_json()
     if not data:
@@ -127,7 +128,7 @@ def get_link_details(konfig: Config):
 
     try:
         # Load the current GLM file
-        glm_file_path = os.path.join(konfig["UPLOADS_FOLDER"], "curr.glm")
+        glm_file_path = os.path.join(UPLOADS_FOLDER_APP, "curr.glm")
 
         if not os.path.isfile(glm_file_path):
             return jsonify({"error": "No GLM file loaded"}), 404
@@ -187,17 +188,15 @@ def get_link_details(konfig: Config):
         return jsonify({"error": f"Error retrieving link details: {str(e)}"}), 500
 
 
-def get_simulation_results(app_config: Config):
+def get_simulation_results():
     """Get simulation results from cache folder (Advanced Option)"""
     try:
         # First try to get results from JSON file (preferred)
-        json_files = [
-            f for f in os.listdir(app_config["OUTPUTS_FOLDER"]) if f.endswith(".json")
-        ]
+        json_files = [f for f in os.listdir(OUTPUTS_FOLDER_APP) if f.endswith(".json")]
 
         if json_files:
             # Use the first JSON file found
-            json_file = os.path.join(app_config["OUTPUTS_FOLDER"], json_files[0])
+            json_file = os.path.join(OUTPUTS_FOLDER_APP, json_files[0])
 
             with open(json_file, "r") as f:
                 data = json.load(f)
