@@ -60,7 +60,7 @@ def read_glm_file():
         if not filename:
             return jsonify({"success": False, "error": "No filename provided"}), 400
 
-        file_path = os.path.join(UPLOADS_FOLDER_APP, filename)
+        file_path = os.path.join(INPUTS_FOLDER_APP, filename)
 
         if not os.path.exists(file_path):
             return jsonify({"success": False, "error": "File not found"}), 404
@@ -88,14 +88,14 @@ def save_glm_file():
                 400,
             )
 
-        file_path = os.path.join(UPLOADS_FOLDER_APP, filename)
-
-        # Create backup of original file
-        if os.path.exists(file_path):
-            backup_path = file_path + ".backup"
-            shutil.copy2(file_path, backup_path)
+        file_path = os.path.join(INPUTS_FOLDER_APP, filename)
 
         with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+        with open(
+            os.path.join(UPLOADS_FOLDER_APP, filename), "w", encoding="utf-8"
+        ) as f:
             f.write(content)
 
         return jsonify(
