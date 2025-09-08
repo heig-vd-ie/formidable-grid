@@ -97,8 +97,6 @@ Fault.myFault.enabled=False
 set number=200
 solve
 
-! Export monitors
-export monitors all
 
 
 

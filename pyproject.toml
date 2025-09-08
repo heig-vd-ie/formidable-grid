@@ -23,11 +23,8 @@ gunicorn = "^23.0.0"
 black = "^25.1.0"
 requests = "^2.32.5"
 python-dotenv = "^1.1.1"
-nrel-pydss = "^3.1.7"
-shapely = "<2.0"
-ipywidgets = "^8.1.7"
-plotly = "^6.3.0"
-nbformat = "^5.10.4"
+opendssdirect-py = {extras = ["extras"], version = "^0.9.4"}
+
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"
