@@ -1,0 +1,36 @@
+New "LineGeometry.750a_qx3"
+~ nconds=4
+~ nphases=3
+~ Cond=1 wire=750A X=0 h=35 units=ft
+~ Cond=2 wire=750A X=0.08 h=34.92 units=ft
+~ Cond=3 wire=750A X=0 h=34.83 units=ft
+~ Cond=4 wire=750A X=-0.08 h=34.92 units=ft
+~ Reduce=Yes
+
+New "LineGeometry.500a_qx3"
+~ nconds=4
+~ nphases=3
+~ Cond=1 wire=500A X=0 h=35 units=ft
+~ Cond=2 wire=500A X=0.068 h=34.932 units=ft
+~ Cond=3 wire=500A X=0 h=34.864 units=ft
+~ Cond=4 wire=500A X=-0.068 h=34.932 units=ft
+~ Reduce=Yes
+
+New "LineGeometry.1/0a_qx3"
+~ nconds=4
+~ nphases=3
+~ Cond=1 wire=1/0A X=0 h=35 units=ft
+~ Cond=2 wire=1/0A X=0.0307 h=34.969 units=ft
+~ Cond=3 wire=1/0A X=0 h=34.939 units=ft
+~ Cond=4 wire=1/0A X=-0.0307 h=34.969 units=ft
+~ Reduce=Yes
+
+New "LineGeometry.340a_qx3"
+~ nconds=4
+~ nphases=3
+~ Cond=1 wire=340A X=0 h=35 units=ft
+~ Cond=2 wire=340A X=0.0555 h=34.94 units=ft
+~ Cond=3 wire=340A X=0 h=34.889 units=ft
+~ Cond=4 wire=340A X=-0.0555 h=34.94 units=ft
+~ Reduce=Yes
+

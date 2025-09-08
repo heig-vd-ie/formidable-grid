@@ -1,0 +1,2 @@
+New "Line.temp" bus1=temp bus2=temp2 Switch=True enabled=true phases=3 normamps=99999 emergamps=99999
+New "Line.temp1" bus1=temp2 bus2=aggld Switch=True enabled=true phases=3 normamps=99999 emergamps=99999

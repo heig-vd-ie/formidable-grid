@@ -1,7 +1,6 @@
 import time
 from flask import Flask, request, jsonify
 import os
-import shutil
 from api.konfig import *
 from api.app import *
 from api.parser import *
