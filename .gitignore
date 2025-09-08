@@ -178,3 +178,5 @@ mongo-data/
 
 data/outputs
 data/uploads
+
+opendss/Exports/*

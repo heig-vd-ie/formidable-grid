@@ -69,10 +69,3 @@ set mode=dynamics steptime=0.001 maxiterations=30 number=200
 set loadshapeclass=daily
 set time=(10,0)
 solve
-
-! Export monitors
-export monitors all
-
-
-
-

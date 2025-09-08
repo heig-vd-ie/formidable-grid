@@ -20,17 +20,30 @@ monitor_names = dss.Monitors.AllNames()
 for monitor_name in monitor_names:
     dss.Monitors.Name(monitor_name)
     monitor_data = dss.Monitors.AsMatrix()
+    header = dss.Monitors.Header()
 
-    if len(monitor_data) > 1:  # Skip if no data
+    if monitor_data is not None and len(monitor_data) > 1:  # Skip if no data
         data_array = np.array(monitor_data)
 
+        # Extract time data (column 1 contains seconds)
+        time_data = data_array[:, 1]
+
         plt.figure(figsize=(10, 6))
-        for col in range(1, data_array.shape[1]):
-            plt.plot(data_array[:, col], label=f"Channel {col}")
+        # Start from column 2 since columns 0 and 1 are time data
+        for col in range(2, data_array.shape[1]):
+            # Use header names if available, otherwise fall back to generic labels
+            header_index = col - 2  # Adjust index for header array
+            if header and header_index < len(header):
+                label = header[header_index]
+            else:
+                label = f"Channel {col-1}"
+            plt.plot(time_data, data_array[:, col], label=label)
 
         plt.title(f"Monitor: {monitor_name}")
-        plt.xlabel("Time")
+        plt.xlabel("Time (seconds)")
         plt.ylabel("Value")
         plt.legend()
         plt.grid(True)
-        plt.savefig(f"{monitor_name}.png")
+        plt.savefig(
+            f"{os.path.join(os.path.dirname(__file__), 'Exports', f'{monitor_name}.png')}"
+        )
