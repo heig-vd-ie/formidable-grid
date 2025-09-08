@@ -1,43 +1,16 @@
-networks:
-  formidable-grid-network:
-    driver: bridge
-
 services:
-  backend-gridlabd:
+  gridlabd:
     build:
       context: .
-      dockerfile: backend-gridlabd/Dockerfile
-    container_name: backend-gridlabd
+      dockerfile: api/Dockerfile
+    container_name: gridlabd
     environment:
-      - SERVER_PORT=${BACKEND_GRIDLABD_PORT}
-      - MODELS_FOLDER=${MODELS_FOLDER}
+      - INPUTS_FOLDER=${INPUTS_FOLDER}
+      - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
+      - INPUTS_FOLDER_NATIVE=${INPUTS_FOLDER_NATIVE}
+      - OUTPUTS_FOLDER_NATIVE=${OUTPUTS_FOLDER_NATIVE}
     volumes:
-      - ${MODELS_FOLDER_NATIVE}:${MODELS_FOLDER}
-    ports:
-      - "${BACKEND_GRIDLABD_PORT}:${BACKEND_GRIDLABD_PORT}"
+      - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
+      - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
     user: root
-    networks:
-      - formidable-grid-network
 
-  frontend-gridlabd:
-    build:
-      context: .
-      dockerfile: frontend-gridlabd/Dockerfile
-    container_name: frontend-gridlabd
-    environment:
-      - SERVER_PORT=${FRONTEND_GRIDLABD_PORT}
-      - BACKEND_GRIDLABD_PORT=${BACKEND_GRIDLABD_PORT}
-      - FRONTEND_GRIDLABD_NATIVE_PORT=${FRONTEND_GRIDLABD_NATIVE_PORT}
-      - MODELS_FOLDER=${MODELS_FOLDER}
-      - UPLOADS_FOLDER=${UPLOADS_FOLDER}
-      - DEV=false
-    volumes:
-      - ${UPLOADS_FOLDER_NATIVE}:${UPLOADS_FOLDER}
-      - ${MODELS_FOLDER_NATIVE}:${MODELS_FOLDER}
-    ports:
-      - "${FRONTEND_GRIDLABD_PORT}:${FRONTEND_GRIDLABD_PORT}"
-    user: root
-    depends_on:
-      - backend-gridlabd
-    networks:
-      - formidable-grid-network

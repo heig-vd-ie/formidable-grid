@@ -1,6 +1,0 @@
-#ifmissing "123.glm"
-#model get IEEE/123
-#endif
-#include "123.glm"
-#output "IEEE-123-voltage-profile.png" -t profile -l 10
-#output "results.csv" -t profile

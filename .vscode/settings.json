@@ -6,13 +6,13 @@
   "typescript.inlayHints.parameterTypes.enabled": true,
   "typescript.inlayHints.propertyDeclarationTypes.enabled":true,
   "terminal.integrated.env.osx": {
-    "PYTHONPATH": "${workspaceFolder}/src",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.env.linux": {
-    "PYTHONPATH": "${workspaceFolder}/src",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.env.windows": {
-    "PYTHONPATH": "${workspaceFolder}/src",
+    "PYTHONPATH": "${workspaceFolder}/backend-gridlabd",
   },
   "terminal.integrated.fontSize": 12,
   "explorer.autoReveal": false,
@@ -21,7 +21,7 @@
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
   "python.analysis.extraPaths": [
-    "src/"
+    "gridlabd/src/"
   ],
   "python.analysis.autoImportCompletions": true,
   "jupyter.notebookFileRoot": "${workspaceFolder}/src",
