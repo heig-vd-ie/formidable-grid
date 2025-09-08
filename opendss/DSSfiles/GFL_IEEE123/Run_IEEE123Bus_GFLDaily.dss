@@ -47,12 +47,12 @@ New InvControl.StoCtrl DERList=[Storage.mystorage PVSystem.myPV] mode=GFM !event
 
 ! Monitors
 
-// New "Monitor.pvmonitor" element=pvsystem.mypv mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
-// New "Monitor.pvvi" element=pvsystem.mypv mode=0 terminal=1
-// New "Monitor.pvstatevars" element=pvsystem.mypv mode=3 terminal=1
-// New "Monitor.stomonitor" element=storage.mystorage mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
-// New "Monitor.stovi" element=storage.mystorage mode=0 terminal=1
-// New "Monitor.stostatevars" element=storage.mystorage mode=3 terminal=1
+New "Monitor.pvmonitor" element=pvsystem.mypv mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
+New "Monitor.pvvi" element=pvsystem.mypv mode=0 terminal=1
+New "Monitor.pvstatevars" element=pvsystem.mypv mode=3 terminal=1
+New "Monitor.stomonitor" element=storage.mystorage mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
+New "Monitor.stovi" element=storage.mystorage mode=0 terminal=1
+New "Monitor.stostatevars" element=storage.mystorage mode=3 terminal=1
 
 calcv
 solve
