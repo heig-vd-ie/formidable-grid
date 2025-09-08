@@ -5,8 +5,8 @@ import numpy as np
 filepath = os.path.join(
     os.path.dirname(__file__),
     "DSSfiles",
-    "GFL_IEEE123",
-    "Run_IEEE123Bus_GFLDaily.dss",
+    "GFM_IEEE123_MyStudy",
+    "Run_IEEE123Bus_GFMDaily.dss",
 )
 print(f"Running OpenDSS file: {filepath}")
 
