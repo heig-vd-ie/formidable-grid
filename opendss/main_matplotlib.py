@@ -1,11 +1,6 @@
 import os
 from opendssdirect import dss
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')  # Use non-interactive backend
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-from matplotlib.lines import Line2D
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -24,8 +19,8 @@ dss.run_command("Solve")
 
 
 def plot_grid_topology():
-    """Plot the grid topology using matplotlib with OpenDSS direct interface"""
-    
+    """Plot the grid topology using only OpenDSS direct interface with Plotly"""
+
     # Get all buses using OpenDSS direct interface
     bus_names = dss.Circuit.AllBusNames()
     if not bus_names:
@@ -34,11 +29,11 @@ def plot_grid_topology():
 
     print(f"Found {len(bus_names)} buses in the circuit")
 
-    # Create matplotlib figure
-    fig, ax = plt.subplots(figsize=(16, 12))
-
     # Get bus positions using OpenDSS Bus.X() and Bus.Y()
     bus_positions = {}
+    bus_x = []
+    bus_y = []
+    bus_labels = []
 
     for i, bus_name in enumerate(bus_names):
         # Set active bus and get coordinates from OpenDSS
@@ -57,16 +52,12 @@ def plot_grid_topology():
             y = float((i // cols) * 300)
 
         bus_positions[bus_name] = (x, y)
-
-        # Plot bus as a circle
-        circle = patches.Circle((x, y), 25, color="blue", alpha=0.7)
-        ax.add_patch(circle)
+        bus_x.append(x)
+        bus_y.append(y)
 
         # Clean bus name for display
         clean_name = bus_name.split(".")[0] if "." in bus_name else bus_name
-        ax.text(
-            x, y - 60.0, clean_name, ha="center", va="top", fontsize=8, fontweight="bold"
-        )
+        bus_labels.append(clean_name)
 
     # Get and plot all lines using OpenDSS direct interface
     line_names = dss.Lines.AllNames()
@@ -74,6 +65,11 @@ def plot_grid_topology():
         line_names = []
 
     print(f"Found {len(line_names)} lines in the circuit")
+
+    # Prepare line data
+    line_x = []
+    line_y = []
+    line_labels = []
 
     for line_name in line_names:
         # Set active line and get bus connections
@@ -108,25 +104,10 @@ def plot_grid_topology():
             x1, y1 = bus_positions[bus1_full]
             x2, y2 = bus_positions[bus2_full]
 
-            # Plot line
-            ax.plot([x1, x2], [y1, y2], "k-", linewidth=2, alpha=0.8)
-
-            # Add line label at midpoint
-            mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
-            if x2 != x1:
-                angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
-            else:
-                angle = 90
-            ax.text(
-                mid_x,
-                mid_y,
-                line_name,
-                ha="center",
-                va="center",
-                fontsize=6,
-                rotation=angle,
-                bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.7),
-            )
+            # Add line coordinates
+            line_x.extend([x1, x2, None])  # None creates a break in the line
+            line_y.extend([y1, y2, None])
+            line_labels.append(line_name)
 
     # Get and plot all transformers using OpenDSS direct interface
     transformer_names = dss.Transformers.AllNames()
@@ -134,6 +115,11 @@ def plot_grid_topology():
         transformer_names = []
 
     print(f"Found {len(transformer_names)} transformers in the circuit")
+
+    # Prepare transformer data
+    transformer_x = []
+    transformer_y = []
+    transformer_labels = []
 
     for transformer_name in transformer_names:
         # Set active transformer
@@ -167,71 +153,87 @@ def plot_grid_topology():
                 x1, y1 = bus_positions[bus1_full]
                 x2, y2 = bus_positions[bus2_full]
 
-                # Plot transformer as a thick red line
-                ax.plot([x1, x2], [y1, y2], "r-", linewidth=4, alpha=0.8)
+                # Add transformer coordinates
+                transformer_x.extend([x1, x2, None])
+                transformer_y.extend([y1, y2, None])
+                transformer_labels.append(transformer_name)
 
-                # Add transformer symbols (circles at each end)
-                circle1 = patches.Circle((x1, y1), 15, color="red", alpha=0.9)
-                circle2 = patches.Circle((x2, y2), 15, color="red", alpha=0.9)
-                ax.add_patch(circle1)
-                ax.add_patch(circle2)
+    # Create Plotly figure
+    fig = go.Figure()
 
-                # Add transformer label
-                mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
-                ax.text(
-                    mid_x,
-                    mid_y + 30,
-                    transformer_name,
-                    ha="center",
-                    va="center",
-                    fontsize=8,
-                    fontweight="bold",
-                    color="red",
-                    bbox=dict(boxstyle="round,pad=0.2", facecolor="yellow", alpha=0.8),
-                )
+    # Add lines
+    if line_x:
+        fig.add_trace(
+            go.Scatter(
+                x=line_x,
+                y=line_y,
+                mode="lines",
+                line=dict(color="black", width=2),
+                name="Lines",
+                hoverinfo="skip",
+            )
+        )
 
-    # Set plot properties
-    ax.set_aspect("equal")
-    ax.grid(True, alpha=0.3)
-    ax.set_title(
-        f"IEEE 123-Bus Test Feeder Grid Topology (OpenDSS Direct)\n{len(bus_names)} Buses, {len(line_names)} Lines, {len(transformer_names)} Transformers",
-        fontsize=14,
-        fontweight="bold",
+    # Add transformers
+    if transformer_x:
+        fig.add_trace(
+            go.Scatter(
+                x=transformer_x,
+                y=transformer_y,
+                mode="lines",
+                line=dict(color="red", width=6),
+                name="Transformers",
+                hoverinfo="skip",
+            )
+        )
+
+    # Add buses
+    fig.add_trace(
+        go.Scatter(
+            x=bus_x,
+            y=bus_y,
+            mode="markers+text",
+            marker=dict(size=20, color="blue", opacity=0.7),
+            text=bus_labels,
+            textposition="bottom center",
+            name="Buses",
+            hovertemplate="<b>%{text}</b><br>X: %{x}<br>Y: %{y}<extra></extra>",
+        )
     )
-    ax.set_xlabel("X Coordinate")
-    ax.set_ylabel("Y Coordinate")
 
-    # Add legend
-    legend_elements = [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            color="blue",
-            label="Bus",
-            markersize=8,
-            linestyle="None",
-        ),
-        Line2D([0], [0], color="black", label="Line", linewidth=2),
-        Line2D([0], [0], color="red", label="Transformer", linewidth=4),
-    ]
-    ax.legend(handles=legend_elements, loc="upper right")
+    # Update layout
+    fig.update_layout(
+        title=f"IEEE 123-Bus Test Feeder Grid Topology (OpenDSS Direct)<br>{len(bus_names)} Buses, {len(line_names)} Lines, {len(transformer_names)} Transformers",
+        xaxis_title="X Coordinate",
+        yaxis_title="Y Coordinate",
+        showlegend=True,
+        width=1200,
+        height=800,
+        hovermode="closest",
+    )
 
-    # Adjust layout
-    plt.tight_layout()
+    # Set equal aspect ratio
+    fig.update_layout(yaxis=dict(scaleanchor="x", scaleratio=1))
 
-    # Save the plot as both SVG and HTML
-    svg_path = os.path.join(os.path.dirname(__file__), "Exports", "network_topology.svg")
-    plt.savefig(svg_path, format='svg', dpi=300, bbox_inches="tight")
-    print(f"Grid topology plot (SVG) saved to: {svg_path}")
-    
-    # Also save as PNG for compatibility
-    png_path = os.path.join(os.path.dirname(__file__), "Exports", "network_topology.png")
-    plt.savefig(png_path, format='png', dpi=300, bbox_inches="tight")
-    print(f"Grid topology plot (PNG) saved to: {png_path}")
-    
-    # Close the figure to free memory
-    plt.close(fig)
+    # Save the plot
+    output_path = os.path.join(
+        os.path.dirname(__file__), "Exports", "network_topology.html"
+    )
+    fig.write_html(output_path)
+    print(f"Grid topology plot saved to: {output_path}")
+
+    # Also save as PNG
+    try:
+        png_path = os.path.join(
+            os.path.dirname(__file__), "Exports", "network_topology.png"
+        )
+        fig.write_image(png_path, width=1200, height=800, scale=2)
+        print(f"Grid topology plot (PNG) saved to: {png_path}")
+    except Exception as e:
+        print(f"Could not save PNG (install kaleido for PNG export): {e}")
+
+    # Show the plot
+    fig.show()
 
 
 def plot_monitor_results():
@@ -269,25 +271,15 @@ def plot_monitor_results():
                 else np.arange(len(data_array))
             )
 
-            # Create Plotly figure for this monitor with professional styling
+            # Create Plotly figure for this monitor
             fig = go.Figure()
-
-            # Define color palette for different channels
-            colors = [
-                "rgba(31, 119, 180, 0.8)",   # Blue
-                "rgba(255, 127, 14, 0.8)",   # Orange  
-                "rgba(44, 160, 44, 0.8)",    # Green
-                "rgba(214, 39, 40, 0.8)",    # Red
-                "rgba(148, 103, 189, 0.8)",  # Purple
-                "rgba(140, 86, 75, 0.8)",    # Brown
-            ]
 
             # Plot each channel (starting from column 2, skipping time columns)
             start_col = 2 if data_array.shape[1] > 2 else 1
 
-            for i, col in enumerate(range(
+            for col in range(
                 start_col, min(data_array.shape[1], start_col + 6)
-            )):  # Limit to 6 channels for readability
+            ):  # Limit to 6 channels for readability
                 # Get header name if available
                 header_index = col - 2  # Adjust for header indexing
                 if header and header_index < len(header):
@@ -301,54 +293,19 @@ def plot_monitor_results():
                         y=data_array[:, col],
                         mode="lines",
                         name=label,
-                        line=dict(
-                            width=2.5,
-                            color=colors[i % len(colors)]
-                        ),
-                        hovertemplate=f"<b>{label}</b><br>Time: %{{x:.3f}}s<br>Value: %{{y:.3f}}<extra></extra>"
+                        line=dict(width=2),
                     )
                 )
 
-            # Update layout with professional styling
+            # Update layout
             fig.update_layout(
-                title=dict(
-                    text=f"Monitor Results: {monitor_name}",
-                    font=dict(size=16, color="rgba(25, 25, 112, 0.9)"),
-                    x=0.5
-                ),
-                xaxis=dict(
-                    title="Time (seconds)",
-                    showgrid=True,
-                    gridwidth=1,
-                    gridcolor="rgba(128, 128, 128, 0.2)",
-                    zeroline=True,
-                    zerolinecolor="rgba(128, 128, 128, 0.3)",
-                    tickfont=dict(size=11)
-                ),
-                yaxis=dict(
-                    title="Value",
-                    showgrid=True,
-                    gridwidth=1,
-                    gridcolor="rgba(128, 128, 128, 0.2)",
-                    zeroline=True,
-                    zerolinecolor="rgba(128, 128, 128, 0.3)",
-                    tickfont=dict(size=11)
-                ),
+                title=f"Monitor: {monitor_name}",
+                xaxis_title="Time (seconds)",
+                yaxis_title="Value",
                 showlegend=True,
-                legend=dict(
-                    x=1.02,
-                    y=1,
-                    bgcolor="rgba(255, 255, 255, 0.8)",
-                    bordercolor="rgba(128, 128, 128, 0.5)",
-                    borderwidth=1,
-                    font=dict(size=11)
-                ),
-                width=1200,
-                height=700,
+                width=1000,
+                height=600,
                 hovermode="x unified",
-                plot_bgcolor="white",
-                paper_bgcolor="white",
-                margin=dict(l=60, r=120, t=80, b=60)
             )
 
             # Save the plot
@@ -357,6 +314,18 @@ def plot_monitor_results():
             )
             fig.write_html(output_path)
             print(f"  Monitor plot saved to: {output_path}")
+
+            # Also save as PNG if possible
+            try:
+                png_path = os.path.join(
+                    os.path.dirname(__file__), "Exports", f"{monitor_name}_results.png"
+                )
+                fig.write_image(png_path, width=1000, height=600, scale=2)
+                print(f"  Monitor plot (PNG) saved to: {png_path}")
+            except Exception as e:
+                print(f"  Could not save PNG (install kaleido for PNG export): {e}")
+
+            fig.show()
 
             # Print some statistics
             if data_array.shape[1] > 2:

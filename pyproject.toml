@@ -24,6 +24,7 @@ black = "^25.1.0"
 requests = "^2.32.5"
 python-dotenv = "^1.1.1"
 opendssdirect-py = {extras = ["extras"], version = "^0.9.4"}
+plotly = "^6.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
