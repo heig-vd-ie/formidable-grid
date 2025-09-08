@@ -3,19 +3,19 @@ New Circuit.ieee123
 
 
 Redirect Vsource.dss
-Redirect LineCode.DSS
-Redirect LoadShape.DSS
-Redirect GrowthShape.DSS
-Redirect TCC_Curve.DSS
-Redirect Spectrum.DSS
+Redirect LineCode.dss
+Redirect LoadShape.dss
+Redirect GrowthShape.dss
+Redirect TCC_Curve.dss
+Redirect Spectrum.dss
 Redirect feeder\Branches.dss
 Redirect feeder\Transformers.dss
 Redirect feeder\Loads.dss
 Redirect feeder\Capacitors.dss
-Redirect Line.DSS
-Redirect Transformer.DSS
-Redirect RegControl.DSS
-Redirect EnergyMeter.DSS
+Redirect Line.dss
+Redirect Transformer.dss
+Redirect RegControl.dss
+Redirect EnergyMeter.dss
 MakeBusList
 Redirect BusVoltageBases.dss  ! set voltage bases
 Buscoords buscoords.dss

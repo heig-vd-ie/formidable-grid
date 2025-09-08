@@ -2,7 +2,7 @@ Clear
 New Circuit.ckt5
 
 
-Redirect LoadShape.DSS
+Redirect LoadShape.dss
 Redirect Vsource.dss
 Redirect WireData.dss
 Redirect LineGeometry.dss

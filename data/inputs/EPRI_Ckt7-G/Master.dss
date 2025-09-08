@@ -2,7 +2,7 @@ Clear
 New Circuit.ckt7
 
 
-Redirect LoadShape.DSS
+Redirect LoadShape.dss
 Redirect Vsource.dss
 Redirect LineCode.dss
 Redirect LoadShape.dss
