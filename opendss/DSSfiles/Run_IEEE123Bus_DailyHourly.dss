@@ -1,0 +1,66 @@
+! Daily Power Flow Analysis with Hourly Resolution
+! Modified from IEEE 123 Bus Test Case for hourly time-series analysis
+
+Compile (IEEE123Master.dss)
+
+! Regulator settings for time series analysis
+RegControl.creg1a.maxtapchange=1  Delay=15
+RegControl.creg2a.maxtapchange=1  Delay=30
+RegControl.creg3a.maxtapchange=1  Delay=30
+RegControl.creg4a.maxtapchange=1  Delay=30
+RegControl.creg3c.maxtapchange=1  Delay=30
+RegControl.creg4b.maxtapchange=1  Delay=30
+RegControl.creg4c.maxtapchange=1  Delay=30
+
+Set MaxControlIter=30
+
+! Energy meter for monitoring
+New EnergyMeter.Feeder Line.L115 1
+
+! DER equipment for microgrid
+new Transformer.TSto1 phases=3 windings=2 buses=(StoBus 101) conns=(delta wye) kvs=(0.48 4.16) kvas=(1000 1000) taps='1 1' XHL=0.5
+new Transformer.TPV1 phases=3 windings=2 buses=(PVBus 108) conns=(wye delta) kvs=(0.48 4.16) kvas=(1000 1000) taps='1 1' XHL=0.5
+
+New "Storage.mystorage" phases=3 conn=delta bus1=StoBus kV=0.48 kva=800 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
+~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=50 %X=50 State=DISCHARGING kP=0.3 KVDC=0.700 PITol=0.1
+
+New "PVSystem.myPV" phases=3 conn=delta bus1=PVBus kV=0.48 kva=200 pmpp=200 daily=pvshape %R=50 %X=50 kP=0.1 KVDC=0.700 PITol=0.1 
+
+! Grid forming inverter controls
+New InvControl.StoCtrl_Storage DERList=[Storage.mystorage] mode=GFM
+New InvControl.StoCtrl_PV DERList=[PVSystem.myPV] mode=GFM
+
+! Monitors for time series data collection
+New "Monitor.pvmonitor" element=pvsystem.mypv mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
+New "Monitor.pvvi" element=pvsystem.mypv mode=0 terminal=1
+New "Monitor.pvstatevars" element=pvsystem.mypv mode=3 terminal=1
+New "Monitor.stomonitor" element=storage.mystorage mode=1 terminal=1 PPolar=no residual=no VIPolar=yes
+New "Monitor.stovi" element=storage.mystorage mode=0 terminal=1
+New "Monitor.stostatevars" element=storage.mystorage mode=3 terminal=1
+
+! Grid voltage monitor for all nodes
+New "Monitor.gridvoltages" element=line.l115 mode=0 terminal=1 VIPolar=yes
+
+! LV side voltage monitors
+New "Monitor.lv_storage_bus" element=transformer.tsto1 mode=0 terminal=1 VIPolar=yes
+New "Monitor.lv_pv_bus" element=transformer.tpv1 mode=0 terminal=1 VIPolar=yes
+New "Monitor.lv_610_bus" element=transformer.xfm1 mode=0 terminal=2 VIPolar=yes
+
+! Bus coordinates for visualization
+Buscoords BusCoords.dat
+
+! Initial settings for time series simulation
+Set LoadMult=1.0
+edit storage.mystorage ControlMode=GFM SafeVoltage=0
+Edit Storage.mystorage kP=0.5
+
+! Set solution mode for time series with hourly resolution
+set mode=daily
+set stepsize=1m
+set number=1440  ! 24 hours
+set loadshapeclass=daily
+set time=(0,0)  ! Start at midnight
+
+! Initial solve
+calcv
+solve
