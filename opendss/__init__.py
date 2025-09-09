@@ -10,8 +10,14 @@ from matplotlib.lines import Line2D
 import plotly.graph_objects as go
 
 
-def plot_grid_topology():
-    """Plot the grid topology using matplotlib with OpenDSS direct interface"""
+def plot_grid_topology(base_size_multiplier=1.0):
+    """Plot the grid topology using matplotlib with OpenDSS direct interface
+
+    Args:
+        base_size_multiplier (float): Global multiplier for all visual elements (default: 1.0)
+                                    Use values < 1.0 to make everything smaller
+                                    Use values > 1.0 to make everything larger
+    """
 
     # Get all buses using OpenDSS direct interface
     bus_names = dss.Circuit.AllBusNames()
@@ -24,6 +30,8 @@ def plot_grid_topology():
 
     # Get bus positions using OpenDSS Bus.X() and Bus.Y()
     bus_positions = {}
+    all_x_coords = []
+    all_y_coords = []
 
     for i, bus_name in enumerate(bus_names):
         # Set active bus and get coordinates from OpenDSS
@@ -35,27 +43,121 @@ def plot_grid_topology():
         x = float(x) if x is not None else 0.0
         y = float(y) if y is not None else 0.0
 
-        # If coordinates are 0,0 (not set), use automatic layout
+        # If coordinates are 0,0 (not set), use automatic layout with dynamic spacing
         if x == 0.0 and y == 0.0:
             cols = int(np.sqrt(len(bus_names))) + 1
-            x = float((i % cols) * 300)
-            y = float((i // cols) * 300)
+            # Use dynamic spacing based on number of buses
+            auto_spacing = max(
+                300, len(bus_names) * 10
+            )  # Minimum 300, scale with bus count
+            x = float((i % cols) * auto_spacing)
+            y = float((i // cols) * auto_spacing)
 
         bus_positions[bus_name] = (x, y)
+        all_x_coords.append(x)
+        all_y_coords.append(y)
 
-        # Plot bus as a circle
-        circle = patches.Circle((x, y), 25, color="blue", alpha=0.7)
+    # Calculate coordinate bounds and scaling factors
+    if all_x_coords and all_y_coords:
+        x_min, x_max = min(all_x_coords), max(all_x_coords)
+        y_min, y_max = min(all_y_coords), max(all_y_coords)
+
+        # Calculate the coordinate area dimensions
+        coord_width = x_max - x_min if x_max != x_min else 1000
+        coord_height = y_max - y_min if y_max != y_min else 1000
+
+        # Calculate scale factor based on coordinate span
+        # For power grid coordinates, we need to consider both the span AND absolute values
+        max_dimension = max(coord_width, coord_height)
+
+        # Check if we're dealing with geographic coordinates (large absolute values)
+        avg_coord = (abs(x_min) + abs(x_max) + abs(y_min) + abs(y_max)) / 4
+        is_geographic = avg_coord > 100000  # Likely geographic/UTM coordinates
+
+        if is_geographic:
+            # For geographic coordinates, use much smaller scale factors
+            if max_dimension > 10000:
+                scale_factor = 0.001  # Very large geographic area
+            elif max_dimension > 5000:
+                scale_factor = 0.002  # Large geographic area
+            elif max_dimension > 1000:
+                scale_factor = 0.005  # Medium geographic area
+            elif max_dimension > 500:
+                scale_factor = 0.01  # Smaller geographic area
+            elif max_dimension > 100:
+                scale_factor = 0.02  # Small geographic area
+            else:
+                scale_factor = 0.05  # Very small geographic area
+        else:
+            # For engineering coordinates, use normal scaling
+            if max_dimension > 50000:
+                scale_factor = 0.2  # Very large coordinates
+            elif max_dimension > 20000:
+                scale_factor = 0.4  # Large coordinates
+            elif max_dimension > 10000:
+                scale_factor = 0.6  # Medium-large coordinates
+            elif max_dimension > 5000:
+                scale_factor = 0.8  # Medium coordinates
+            elif max_dimension > 1000:
+                scale_factor = 1.0  # Normal coordinates
+            else:
+                scale_factor = 1.2  # Small coordinates
+
+        print(f"Coordinate analysis:")
+        print(f"  X range: {x_min:.1f} to {x_max:.1f} (width: {coord_width:.1f})")
+        print(f"  Y range: {y_min:.1f} to {y_max:.1f} (height: {coord_height:.1f})")
+        print(f"  Max dimension: {max_dimension:.1f}")
+        print(f"  Average coordinate magnitude: {avg_coord:.1f}")
+        print(f"  Geographic coordinates detected: {is_geographic}")
+        print(f"  Scale factor: {scale_factor:.4f}")
+
+        # Dynamic sizing based on coordinate area
+        bus_radius = 25 * scale_factor * base_size_multiplier
+        text_offset_y = 60.0 * scale_factor * base_size_multiplier
+        transformer_radius = 15 * scale_factor * base_size_multiplier
+        text_offset_transformer = 30 * scale_factor * base_size_multiplier
+        line_width = max(0.5, 2 * scale_factor * base_size_multiplier)
+        transformer_line_width = max(1.0, 4 * scale_factor * base_size_multiplier)
+        font_size_bus = max(4, min(14, 8 * scale_factor * base_size_multiplier))
+        font_size_line = max(3, min(12, 6 * scale_factor * base_size_multiplier))
+        font_size_transformer = max(4, min(14, 8 * scale_factor * base_size_multiplier))
+
+        print(f"Applied sizes:")
+        print(f"  Bus radius: {bus_radius:.2f}")
+        print(f"  Text offset: {text_offset_y:.2f}")
+        print(
+            f"  Line widths: regular={line_width:.2f}, transformer={transformer_line_width:.2f}"
+        )
+        print(
+            f"  Font sizes: bus={font_size_bus:.1f}, line={font_size_line:.1f}, transformer={font_size_transformer:.1f}"
+        )
+    else:
+        # Fallback to default values
+        bus_radius = 25 * base_size_multiplier
+        text_offset_y = 60.0 * base_size_multiplier
+        transformer_radius = 15 * base_size_multiplier
+        text_offset_transformer = 30 * base_size_multiplier
+        line_width = max(0.5, 2 * base_size_multiplier)
+        transformer_line_width = max(1.0, 4 * base_size_multiplier)
+        font_size_bus = max(4, min(14, 8 * base_size_multiplier))
+        font_size_line = max(3, min(12, 6 * base_size_multiplier))
+        font_size_transformer = max(4, min(14, 8 * base_size_multiplier))
+
+    # Plot buses with dynamic sizing
+    for bus_name, (x, y) in bus_positions.items():
+        # Plot bus as a circle with dynamic radius
+        circle = patches.Circle((x, y), bus_radius, color="blue", alpha=0.7)
         ax.add_patch(circle)
 
         # Clean bus name for display
         clean_name = bus_name.split(".")[0] if "." in bus_name else bus_name
         ax.text(
             x,
-            y - 60.0,
+            y - text_offset_y,
             clean_name,
             ha="center",
             va="top",
-            fontsize=8,
+            fontsize=font_size_bus,
             fontweight="bold",
         )
 
@@ -97,10 +199,10 @@ def plot_grid_topology():
             x1, y1 = bus_positions[bus1_full]
             x2, y2 = bus_positions[bus2_full]
 
-            # Plot line
-            ax.plot([x1, x2], [y1, y2], "k-", linewidth=2, alpha=0.8)
+            # Plot line with dynamic line width
+            ax.plot([x1, x2], [y1, y2], "k-", linewidth=line_width, alpha=0.8)
 
-            # Add line label at midpoint
+            # Add line label at midpoint with dynamic font size
             mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
             if x2 != x1:
                 angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
@@ -112,7 +214,7 @@ def plot_grid_topology():
                 line_name,
                 ha="center",
                 va="center",
-                fontsize=6,
+                fontsize=font_size_line,
                 rotation=angle,
                 bbox=dict(boxstyle="round,pad=0.1", facecolor="white", alpha=0.7),
             )
@@ -154,24 +256,34 @@ def plot_grid_topology():
                 x1, y1 = bus_positions[bus1_full]
                 x2, y2 = bus_positions[bus2_full]
 
-                # Plot transformer as a thick red line
-                ax.plot([x1, x2], [y1, y2], "r-", linewidth=4, alpha=0.8)
+                # Plot transformer as a thick red line with dynamic line width
+                ax.plot(
+                    [x1, x2],
+                    [y1, y2],
+                    "r-",
+                    linewidth=transformer_line_width,
+                    alpha=0.8,
+                )
 
-                # Add transformer symbols (circles at each end)
-                circle1 = patches.Circle((x1, y1), 15, color="red", alpha=0.9)
-                circle2 = patches.Circle((x2, y2), 15, color="red", alpha=0.9)
+                # Add transformer symbols (circles at each end) with dynamic sizing
+                circle1 = patches.Circle(
+                    (x1, y1), transformer_radius, color="red", alpha=0.9
+                )
+                circle2 = patches.Circle(
+                    (x2, y2), transformer_radius, color="red", alpha=0.9
+                )
                 ax.add_patch(circle1)
                 ax.add_patch(circle2)
 
-                # Add transformer label
+                # Add transformer label with dynamic positioning and font size
                 mid_x, mid_y = (x1 + x2) / 2, (y1 + y2) / 2
                 ax.text(
                     mid_x,
-                    mid_y + 30,
+                    mid_y + text_offset_transformer,
                     transformer_name,
                     ha="center",
                     va="center",
-                    fontsize=8,
+                    fontsize=font_size_transformer,
                     fontweight="bold",
                     color="red",
                     bbox=dict(boxstyle="round,pad=0.2", facecolor="yellow", alpha=0.8),
@@ -200,7 +312,9 @@ def plot_grid_topology():
             linestyle="None",
         ),
         Line2D([0], [0], color="black", label="Line", linewidth=2),
-        Line2D([0], [0], color="red", label="Transformer", linewidth=4),
+        Line2D(
+            [0], [0], color="red", label="Transformer", linewidth=transformer_line_width
+        ),
     ]
     ax.legend(handles=legend_elements, loc="upper right")
 

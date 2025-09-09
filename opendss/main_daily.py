@@ -17,7 +17,7 @@ def setup_circuit():
     filepath = os.path.join(
         os.path.dirname(__file__),
         "DSSfiles",
-        "Run_IEEE123Bus_DailyHourly.dss",
+        "Run_DailyHourly.dss",
     )
     print(f"Loading OpenDSS file: {filepath}")
 
@@ -37,7 +37,7 @@ def run_daily_powerflow():
     results = []
 
     # Time parameters
-    total_minutes = 1440  # 24 hours * 60 minutes
+    total_minutes = 24  # 24 hours * 60 minutes
     start_time = datetime.now()
 
     print(f"Running power flow for {total_minutes} minutes (once per minute)...")
@@ -46,8 +46,8 @@ def run_daily_powerflow():
     # Main simulation loop
     for minute in range(total_minutes):
         # Calculate current time
-        current_hour = minute // 60
-        current_minute = minute % 60
+        current_hour = minute
+        current_minute = 0
         current_second = 0
 
         # Set time in OpenDSS (hour, second_of_hour)

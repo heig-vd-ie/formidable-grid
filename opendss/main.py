@@ -10,14 +10,16 @@ from opendss import plot_grid_topology, plot_monitor_results
 filepath = os.path.join(
     os.path.dirname(__file__),
     "DSSfiles",
-    "Run_IEEE123Bus_GFMDaily.dss",
+    "Run_GFMDaily.dss",
 )
 print(f"Running OpenDSS file: {filepath}")
 
-dss.run_command("Clear")
-dss.run_command(f'Redirect "{filepath}"')
+dss.Command("Clear")
+dss.Command(f'Redirect "{filepath}"')
 
-plot_grid_topology()
+# Plot with adaptive sizing - you can adjust base_size_multiplier if needed
+# Use values < 1.0 to make everything smaller, > 1.0 to make everything larger
+plot_grid_topology(base_size_multiplier=0.8)  # 20% smaller for better visibility
 
 # Plot monitor results
 plot_monitor_results()
