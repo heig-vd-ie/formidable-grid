@@ -43,7 +43,8 @@ New "Storage.mystorage" phases=3 conn=delta bus1=StoBus kV=0.48 kva=800 kWrated=
 New "PVSystem.myPV" phases=3 conn=delta bus1=PVBus kV=0.48 kva=200 pmpp=200 daily=pvshape %R=50 %X=50 kP=0.1 KVDC=0.700 PITol=0.1 
 
 ! Grid forming inverter mode requires an InvControl for monitoring the current
-New InvControl.StoCtrl DERList=[Storage.mystorage] mode=GFM !eventlog=yes
+New InvControl.StoCtrl_Storage DERList=[Storage.mystorage] mode=GFM !eventlog=yes
+New InvControl.StoCtrl_PV DERList=[PVSystem.myPV] mode=GFM !eventlog=yes
 
 ! Monitors
 
@@ -54,18 +55,26 @@ New "Monitor.stomonitor" element=storage.mystorage mode=1 terminal=1 PPolar=no r
 New "Monitor.stovi" element=storage.mystorage mode=0 terminal=1
 New "Monitor.stostatevars" element=storage.mystorage mode=3 terminal=1
 
+! Grid voltage monitor for all nodes
+New "Monitor.gridvoltages" element=line.l115 mode=0 terminal=1 VIPolar=yes
+
+! LV side voltage monitors
+New "Monitor.lv_storage_bus" element=transformer.tsto1 mode=0 terminal=1 VIPolar=yes  ! Storage LV bus (StoBus)
+New "Monitor.lv_pv_bus" element=transformer.tpv1 mode=0 terminal=1 VIPolar=yes       ! PV LV bus (PVBus)
+New "Monitor.lv_610_bus" element=transformer.xfm1 mode=0 terminal=2 VIPolar=yes      ! 610 LV bus (480V side)
+
 calcv
 solve
 Buscoords BusCoords.dat   ! load in bus coordinates
-
-! Opens switch sw5 creating an island
-open line.sw5 terminal=1
-solve
-
+Set LoadMult=0.2
 edit storage.mystorage ControlMode=GFM SafeVoltage=0
-
+// edit pvSystem.myPV ControlMode=GFM SafeVoltage=0
+Edit Storage.mystorage kP=0.5
+// Edit PVSystem.myPV %R=0.1 %X=0.1 kP=0.01
+open line.sw1 terminal=2
 ! Starts in dynamics mode and goes for 200 ms
-set mode=dynamics steptime=0.001 maxiterations=30 number=200
+set mode=dynamics steptime=0.002 maxiterations=30 number=200
 set loadshapeclass=daily
 set time=(10,0)
+
 solve
