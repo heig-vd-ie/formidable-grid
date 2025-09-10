@@ -103,14 +103,6 @@ def plot_grid_topology(base_size_multiplier=1.0):
             else:
                 scale_factor = 1.2  # Small coordinates
 
-        print(f"Coordinate analysis:")
-        print(f"  X range: {x_min:.1f} to {x_max:.1f} (width: {coord_width:.1f})")
-        print(f"  Y range: {y_min:.1f} to {y_max:.1f} (height: {coord_height:.1f})")
-        print(f"  Max dimension: {max_dimension:.1f}")
-        print(f"  Average coordinate magnitude: {avg_coord:.1f}")
-        print(f"  Geographic coordinates detected: {is_geographic}")
-        print(f"  Scale factor: {scale_factor:.4f}")
-
         # Dynamic sizing based on coordinate area
         bus_radius = 25 * scale_factor * base_size_multiplier
         text_offset_y = 60.0 * scale_factor * base_size_multiplier
@@ -122,15 +114,6 @@ def plot_grid_topology(base_size_multiplier=1.0):
         font_size_line = max(3, min(12, 6 * scale_factor * base_size_multiplier))
         font_size_transformer = max(4, min(14, 8 * scale_factor * base_size_multiplier))
 
-        print(f"Applied sizes:")
-        print(f"  Bus radius: {bus_radius:.2f}")
-        print(f"  Text offset: {text_offset_y:.2f}")
-        print(
-            f"  Line widths: regular={line_width:.2f}, transformer={transformer_line_width:.2f}"
-        )
-        print(
-            f"  Font sizes: bus={font_size_bus:.1f}, line={font_size_line:.1f}, transformer={font_size_transformer:.1f}"
-        )
     else:
         # Fallback to default values
         bus_radius = 25 * base_size_multiplier
