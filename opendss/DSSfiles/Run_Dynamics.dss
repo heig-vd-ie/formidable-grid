@@ -6,10 +6,13 @@ Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewLoadShapes.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewPvs.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewStorages.dss
 
+
 Set MaxControlIter=50
 
 set time=(10,0)
 calcv
+BusCoords $INTERNAL_DSSFILES_FOLDER/Common/BusCoords.dss
+
 solve
 Set LoadMult=1
 
