@@ -6,23 +6,16 @@ Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewLoadShapes.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewPvs.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewStorages.dss
 
+Set MaxControlIter=50 time=(10,0)
 
-Set MaxControlIter=50
-
-set time=(10,0)
-calcv
+Calcv
 BusCoords $INTERNAL_DSSFILES_FOLDER/Common/BusCoords.dss
 
-solve
-Set LoadMult=1
+Solve
 
-edit storage.mystorage1 ControlMode=GFM SafeVoltage=0
-edit storage.mystorage2 ControlMode=GFM SafeVoltage=0
-edit storage.mystorage3 ControlMode=GFL SafeVoltage=0
-
-open line.sw1 terminal=2
-set mode=dynamics steptime=0.002 maxiterations=30 number=200
-set loadshapeclass=daily
-set time=(10,0)
-
-solve
+Edit storage.mystorage1 ControlMode=GFM SafeVoltage=0
+Edit storage.mystorage2 ControlMode=GFM SafeVoltage=0
+Edit storage.mystorage3 ControlMode=GFL SafeVoltage=0
+Open line.sw1 terminal=2
+Set LoadMult=1 mode=dynamics steptime=0.002 maxiterations=30 number=200 loadshapeclass=daily
+Solve

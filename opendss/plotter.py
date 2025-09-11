@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 from opendssdirect import dss
 import numpy as np
 import matplotlib
@@ -6,6 +7,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from matplotlib.lines import Line2D
 import plotly.graph_objects as go
+import plotly.express as px
+from plotly.subplots import make_subplots
+
 
 matplotlib.use("Agg")  # Use non-interactive backend
 
@@ -257,9 +261,7 @@ def plot_grid_topology(base_size_multiplier=1.0):
     plt.tight_layout()
 
     # Save the plot as both SVG and HTML
-    svg_path = os.path.join(
-        os.path.dirname(__file__), "Exports", "network_topology.svg"
-    )
+    svg_path = os.path.join(os.getenv("DSS_EXPORT_FOLDER", ""), "network_topology.svg")
     plt.savefig(svg_path, format="svg", dpi=300, bbox_inches="tight")
     print(f"Grid topology plot (SVG) saved to: {svg_path}")
 
@@ -373,10 +375,172 @@ def plot_monitor_results():
 
             # Save the plot
             output_path = os.path.join(
-                os.path.dirname(__file__), "Exports", f"{monitor_name}_results.html"
+                os.getenv("DSS_EXPORT_FOLDER", ""), f"{monitor_name}_results.html"
             )
             fig.write_html(output_path)
             print(f"Monitor plot saved to: {output_path}")
 
         else:
             print(f"No data found for monitor {monitor_name}")
+
+
+def create_qsts_plots(df: pd.DataFrame):
+    """Create comprehensive plots of the power flow results"""
+
+    # Create subplots
+    fig = make_subplots(
+        rows=3,
+        cols=2,
+        subplot_titles=(
+            "System Total Power vs Time",
+            "Bus Voltages vs Time",
+            "PV System Power vs Time",
+            "Storage System Power vs Time",
+            "System Losses vs Time",
+            "Solution Performance",
+        ),
+        specs=[
+            [{"secondary_y": True}, {"secondary_y": False}],
+            [{"secondary_y": True}, {"secondary_y": True}],
+            [{"secondary_y": True}, {"secondary_y": False}],
+        ],
+    )
+
+    # 1. System Total Power
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["total_real_power_kW"],
+            name="Real Power (kW)",
+            line=dict(color="blue"),
+        ),
+        row=1,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["total_reactive_power_kVAr"],
+            name="Reactive Power (kVAr)",
+            line=dict(color="red"),
+        ),
+        row=1,
+        col=1,
+        secondary_y=True,
+    )
+
+    # 2. Bus Voltages
+    voltage_cols = [col for col in df.columns if col.startswith("V_")]
+    colors = px.colors.qualitative.Set1
+    for i, col in enumerate(voltage_cols):
+        bus_name = col.replace("V_", "")
+        fig.add_trace(
+            go.Scatter(
+                x=df["datetime"],
+                y=df[col],
+                name=f"Bus {bus_name}",
+                line=dict(color=colors[i % len(colors)]),
+            ),
+            row=1,
+            col=2,
+        )
+
+    # 3. PV System Power
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["pv_real_power_kW"],
+            name="PV Real Power (kW)",
+            line=dict(color="orange"),
+        ),
+        row=2,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["pv_reactive_power_kVAr"],
+            name="PV Reactive Power (kVAr)",
+            line=dict(color="yellow"),
+        ),
+        row=2,
+        col=1,
+        secondary_y=True,
+    )
+
+    # 4. Storage System Power
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["storage_real_power_kW"],
+            name="Storage Real Power (kW)",
+            line=dict(color="green"),
+        ),
+        row=2,
+        col=2,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["storage_reactive_power_kVAr"],
+            name="Storage Reactive Power (kVAr)",
+            line=dict(color="lightgreen"),
+        ),
+        row=2,
+        col=2,
+        secondary_y=True,
+    )
+
+    # 5. System Losses
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["losses_real_kW"],
+            name="Real Losses (kW)",
+            line=dict(color="red"),
+        ),
+        row=3,
+        col=1,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["losses_reactive_kVAr"],
+            name="Reactive Losses (kVAr)",
+            line=dict(color="pink"),
+        ),
+        row=3,
+        col=1,
+        secondary_y=True,
+    )
+
+    # 6. Solution Performance
+    fig.add_trace(
+        go.Scatter(
+            x=df["datetime"],
+            y=df["solve_time_ms"],
+            name="Solve Time (ms)",
+            line=dict(color="purple"),
+        ),
+        row=3,
+        col=2,
+    )
+
+    # Update layout
+    fig.update_layout(
+        height=1200,
+        title_text="Daily Power Flow Analysis - Hourly Resolution",
+        showlegend=True,
+    )
+
+    # Update x-axis labels
+    for i in range(1, 5):
+        for j in range(1, 3):
+            fig.update_xaxes(title_text="Time", row=i, col=j)
+
+    # Save plot to HTML
+    html_path = os.path.join(
+        os.getenv("DSS_EXPORT_FOLDER", ""), "daily_powerflow_hourly_plots.html"
+    )
+    fig.write_html(html_path)
+    print(f"Interactive plots saved to: {html_path}")

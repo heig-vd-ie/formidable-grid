@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import tempfile
+from opendssdirect import dss
 
 
 def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
@@ -22,3 +23,16 @@ def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
     with open(temp_dss_file_path, "w") as temp_dss_file:
         temp_dss_file.write(substituted_script)
     return Path(temp_dss_file_path)
+
+
+def setup_circuit(dss_filename: str):
+    filepath = Path(os.getenv("INTERNAL_DSSFILES_FOLDER", "")) / dss_filename
+
+    temp_file = replace_env_vars_in_dss(filepath)
+
+    dss.Command("Clear")
+    dss.Command(f'Redirect "{temp_file}"')
+
+    os.remove(temp_file)
+    print(f"Temp file {temp_file} removed.")
+    return dss
