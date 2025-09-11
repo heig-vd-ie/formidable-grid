@@ -9,6 +9,8 @@ from plotly.subplots import make_subplots
 from opendssdirect import dss
 from datetime import datetime, timedelta
 
+from opendss.helpers import replace_env_vars_in_dss
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
@@ -17,13 +19,17 @@ def setup_circuit():
     filepath = os.path.join(
         os.path.dirname(__file__),
         "DSSfiles",
-        "Run_DailyHourly.dss",
+        "Run_QSTS.dss",
     )
     print(f"Loading OpenDSS file: {filepath}")
 
-    dss.run_command("Clear")
-    dss.run_command(f'Redirect "{filepath}"')
-    return filepath
+    temp_file = replace_env_vars_in_dss(filepath)
+
+    dss.Command("Clear")
+    dss.Command(f'Redirect "{temp_file}"')
+
+    os.remove(temp_file)
+    print(f"Temp file {temp_file} removed.")
 
 
 def run_daily_powerflow():

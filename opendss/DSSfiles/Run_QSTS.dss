@@ -1,4 +1,4 @@
-Compile (Master.dss)
+Compile (../../data/inputs/DSSfiles/European_LV_Test_Feeder-G/Master.dss)
 
 Set MaxControlIter=30
 

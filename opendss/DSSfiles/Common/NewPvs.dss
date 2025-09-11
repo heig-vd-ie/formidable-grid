@@ -1,0 +1,1 @@
+New "PVSystem.myPV" phases=3 conn=delta bus1=1 kV=0.48 kva=100 pmpp=200 daily=pvshape %R=50 %X=50 kP=0.3 KVDC=0.700 PITol=0.1 

@@ -1,0 +1,2 @@
+Edit Transformer.tr1 buses=[sourcebus, 1r, ]
+New Line.Sw1    phases=3  Bus1=1r   Bus2=1    switch=yes r1=1e-3 r0=1e-3 x1=0 x0=0 c1=0 c0=0 Length=0.001
