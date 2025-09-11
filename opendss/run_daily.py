@@ -5,17 +5,17 @@ import numpy as np
 from tqdm import tqdm
 from datetime import datetime, timedelta
 from plotter import create_qsts_plots
+from helpers import setup_circuit
 import ray
 import psutil
+from profile_reader import load_pv_profile
 
 
 @ray.remote
-def run_powerflow_timestep(run_index, base_dir, env_vars):
+def run_powerflow_timestep(temp_file, run_index, base_dir, env_vars, pv_multiplier):
     """Run power flow analysis for a single timestep"""
     # Import OpenDSS inside the remote function to avoid serialization issues
     from opendssdirect import dss
-    from helpers import setup_circuit
-    import os
 
     # Set environment variables in the worker
     for key, value in env_vars.items():
@@ -25,20 +25,13 @@ def run_powerflow_timestep(run_index, base_dir, env_vars):
     os.chdir(base_dir)
 
     current_hour = run_index // 60
-    current_minute = (run_index % 60) * 30
+    current_minute = (run_index % 60) * 1
     current_second = 0
 
     # Load PV profile multipliers
-    from profile_reader import load_pv_profile
-
-    pv_multipliers = load_pv_profile()
-
-    # Each Ray worker needs its own DSS instance
-    setup_circuit("Run_QSTS.dss")
-    dss.run_command(
-        f"Edit LoadShape.pvshape npts=1440 mult=[{' '.join(map(str, pv_multipliers))}]"
-    )
-    dss.run_command(f"Set time=({current_hour},0)")
+    dss.Command("Clear")
+    dss.Command(f'Compile "{temp_file}"')
+    dss.run_command(f"Edit LoadShape.pvshape npts=1 mult=[{pv_multiplier}]")
     solve_time = time.time()
     dss.run_command("Solve")
     solve_time = time.time() - solve_time
@@ -133,17 +126,24 @@ def run_daily_powerflow(total_runs=24 * 60):
         "EXTERNAL_DSSFILES_FOLDER": os.environ.get("EXTERNAL_DSSFILES_FOLDER", ""),
     }
 
+    temp_file = setup_circuit("Run_QSTS.dss")
+    pv_multipliers = load_pv_profile()
+
     run_indices = list(range(total_runs))
 
     # Submit all tasks to Ray
     futures = [
-        run_powerflow_timestep.remote(run_idx, base_dir, env_vars)
+        run_powerflow_timestep.remote(
+            temp_file, run_idx, base_dir, env_vars, pv_multipliers[run_idx]
+        )
         for run_idx in run_indices
     ]
 
     results = []
     for x in tqdm(to_iterator(futures), total=len(futures)):
         results.append(x)
+
+    os.remove(temp_file)
 
     # Convert to DataFrame
     df = pd.DataFrame(results)

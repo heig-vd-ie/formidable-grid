@@ -28,10 +28,7 @@ def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
 def setup_circuit(dss_filename: str):
     filepath = Path(os.getenv("INTERNAL_DSSFILES_FOLDER", "")) / dss_filename
     temp_file = replace_env_vars_in_dss(filepath)
-    dss.Command("Clear")
-    dss.Command(f'Compile "{temp_file}"')
-    os.remove(temp_file)
-    return dss
+    return temp_file
 
 
 def setup_and_run_circuit(dss_filename: str):
