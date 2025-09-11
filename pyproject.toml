@@ -26,6 +26,8 @@ python-dotenv = "^1.1.1"
 opendssdirect-py = {extras = ["extras"], version = "^0.9.4"}
 plotly = "^6.3.0"
 tqdm = "^4.67.1"
+ray = "^2.49.1"
+psutil = "^7.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
