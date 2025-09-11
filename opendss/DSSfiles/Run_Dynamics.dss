@@ -1,0 +1,21 @@
+Compile ($EXTERNAL_DSSFILES_FOLDER/European_LV_Test_Feeder-G/Master.dss)
+
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewSwitches.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewMonitors.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewLoadShapes.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewPvs.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewStorages.dss
+
+Set MaxControlIter=50 time=(10,0)
+
+Calcv
+BusCoords $INTERNAL_DSSFILES_FOLDER/Common/BusCoords.dss
+
+Solve
+
+Edit storage.mystorage1 ControlMode=GFM SafeVoltage=0
+Edit storage.mystorage2 ControlMode=GFM SafeVoltage=0
+Edit storage.mystorage3 ControlMode=GFL SafeVoltage=0
+Open line.sw1 terminal=2
+Set LoadMult=1 mode=dynamics steptime=0.002 maxiterations=30 number=200 loadshapeclass=daily
+Solve
