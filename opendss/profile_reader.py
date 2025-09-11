@@ -1,0 +1,50 @@
+import os
+import pandas as pd
+import numpy as np
+from datetime import datetime
+
+
+def load_pv_profile():
+    """Load and process the PV profile data"""
+    df = pd.read_csv(f"{os.getenv('INTERNAL_DSSFILES_FOLDER')}/PV_PROFILE.csv")
+    df["datetime"] = df.apply(
+        lambda row: f"{row['DATE (MM/DD/YYYY)']} {row['HST']}", axis=1
+    )
+    df["multiplier"] = (
+        df["Global Horizontal [W/m^2]"] / df["Global Horizontal [W/m^2]"].max()
+    )
+
+    # Parse datetime column
+    df["datetime"] = pd.to_datetime(df["datetime"], format="%m/%d/%Y  %H:%M")
+    df = df.sort_values("datetime")
+
+    # Create a full datetime index for every minute in the year (non-leap year)
+    start = datetime(
+        df["datetime"].dt.year.min(),
+        df["datetime"].dt.month.min(),
+        df["datetime"].dt.day.min(),
+    )
+    end = datetime(df["datetime"].dt.year.min(), 12, 31, 23, 59)
+    full_index = pd.date_range(start, end, freq="min")
+
+    # Reindex and interpolate
+    df_interp = df.set_index("datetime").reindex(full_index)
+    df_interp["multiplier"] = (
+        df_interp["multiplier"].interpolate(method="time").fillna(0)
+    )
+
+    overall_avg = df["multiplier"].mean()
+    df_interp["multiplier"] = df_interp["multiplier"].fillna(overall_avg)
+
+    # Set the first element to the average value for its day
+    first_day = full_index[0].date()
+    first_day_mask = [dt.date() == first_day for dt in df["datetime"]]
+    first_day_avg = df.loc[first_day_mask, "multiplier"].mean()
+    if not np.isnan(first_day_avg):
+        df_interp.loc[df_interp.index[0], "multiplier"] = first_day_avg
+    else:
+        df_interp.loc[df_interp.index[0], "multiplier"] = overall_avg
+
+    # Create the numpy array
+    multiplier_array = df_interp["multiplier"].to_numpy().flatten()
+    return multiplier_array

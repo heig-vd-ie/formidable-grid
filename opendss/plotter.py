@@ -526,12 +526,60 @@ def create_qsts_plots(df: pd.DataFrame):
         col=2,
     )
 
-    # Update layout
+    # Update layout for journal publication: larger, tighter, clean
     fig.update_layout(
         height=1200,
-        title_text="Daily Power Flow Analysis - Hourly Resolution",
+        width=2200,
+        title_font=dict(size=32, family="Arial", color="black"),
         showlegend=True,
+        legend=dict(
+            font=dict(size=20, family="Arial"),
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            bgcolor="rgba(255,255,255,0.7)",
+            bordercolor="rgba(0,0,0,0.1)",
+            borderwidth=1,
+        ),
+        margin=dict(l=40, r=40, t=80, b=40),
+        plot_bgcolor="white",
+        paper_bgcolor="white",
+        font=dict(size=22, family="Arial", color="black"),
+        hovermode="x unified",
     )
+
+    # Reduce space between subplots
+    fig.update_layout(
+        grid=dict(rows=3, columns=2, pattern="independent"),
+        # Tighter vertical and horizontal spacing
+        autosize=False,
+    )
+    fig.update_annotations(font_size=20, font_family="Arial")
+
+    # Update axes for all subplots
+    for i in range(1, 4):
+        for j in range(1, 3):
+            fig.update_xaxes(
+                title_text="Time",
+                row=i,
+                col=j,
+                showgrid=True,
+                gridcolor="rgba(200,200,200,0.3)",
+                zeroline=True,
+                zerolinecolor="rgba(180,180,180,0.5)",
+                tickfont=dict(size=18, family="Arial"),
+                title_font=dict(size=20, family="Arial"),
+            )
+            fig.update_yaxes(
+                showgrid=True,
+                gridcolor="rgba(200,200,200,0.3)",
+                zeroline=True,
+                zerolinecolor="rgba(180,180,180,0.5)",
+                tickfont=dict(size=18, family="Arial"),
+                title_font=dict(size=20, family="Arial"),
+            )
 
     # Update x-axis labels
     for i in range(1, 5):
