@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
-from setup_log import setup_logger
+from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 

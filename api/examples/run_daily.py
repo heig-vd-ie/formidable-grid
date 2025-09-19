@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from opendss.plotter import create_qsts_plots
 from opendss.helpers import setup_circuit
 from opendss.profile_reader import load_pv_profile
-from setup_log import setup_logger
+from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 
