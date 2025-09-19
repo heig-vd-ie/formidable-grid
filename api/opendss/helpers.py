@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 import tempfile
 from opendssdirect import dss
+from setup_log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
@@ -37,5 +40,5 @@ def setup_and_run_circuit(dss_filename: str):
     dss.Command("Clear")
     dss.Command(f'Redirect "{temp_file}"')
     os.remove(temp_file)
-    print(f"Temp file {temp_file} removed.")
+    logger.info(f"Temp file {temp_file} removed.")
     return dss
