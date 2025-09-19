@@ -1,7 +1,10 @@
 from datetime import datetime, timedelta
+from email.mime import base
 import os
+from pathlib import Path
 import time
 
+from main import init_ray, shutdown_ray
 import numpy as np
 import pandas as pd
 import psutil
@@ -9,7 +12,9 @@ import ray
 from tqdm import tqdm
 
 from app.helpers import setup_circuit
+from app.models import PowerFlow, SimulationResult, tuple_to_powerflow
 from app.profile_reader import load_pv_profile
+from common.konfig import MAX_CPU_COUNT
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -17,40 +22,53 @@ logger = setup_logger(__name__)
 
 @ray.remote
 class DSSWorker:
-    def __init__(self, temp_file, base_dir, env_vars):
+    def __init__(self, basedir: str, temp_file: str, env_vars: dict):
         from opendssdirect import dss
+
+        self.basedir = basedir
+        self.temp_file = temp_file
 
         for key, value in env_vars.items():
             os.environ[key] = value
-        os.chdir(base_dir)
+        os.chdir(self.basedir)
 
         self.dss = dss
+        self._initialize_circuit(temp_file)
+
+    def _initialize_circuit(self, temp_file: str):
+        """Initialize the OpenDSS circuit from the given .dss file"""
         self.dss.Command("Clear")
         self.dss.Command(f'Compile "{temp_file}"')
 
-    def solve(self, run_index, pv_multiplier):
+    def _solve(self, pv_multiplier: float):
         """Run power flow analysis for a single timestep"""
-
-        current_hour = run_index // 60
-        current_minute = (run_index % 60) * 1
-        current_second = 0
-
+        time_start = time.time()
         self.dss.run_command(f"Edit LoadShape.pvshape npts=1 mult=[{pv_multiplier}]")
-        solve_time = time.time()
         self.dss.run_command("Solve")
-        solve_time = time.time() - solve_time
+        time_end = time.time()
+        return time_end - time_start
+
+    def get_results(
+        self,
+        delta_time: float,
+        curr_datetime: datetime,
+        key_buses: list[str] | None = None,
+        key_storages: list[str] | None = None,
+        key_pvs: list[str] | None = None,
+    ) -> SimulationResult:
+        """Extract results from the OpenDSS simulation"""
+        if key_buses is None:
+            key_buses = ["101", "108", "610"]
+        if key_pvs is None:
+            key_pvs = ["PVSystem.myPV"]
+        if key_storages is None:
+            key_storages = ["Storage.mystorage"]
+
         converged = self.dss.Solution.Converged()
-
         if converged:
-            total_power = self.dss.Circuit.TotalPower()
-            losses = self.dss.Circuit.Losses()
+            total_power = tuple_to_powerflow(self.dss.Circuit.TotalPower())
+            losses = tuple_to_powerflow(self.dss.Circuit.Losses())
 
-            # Get bus voltages
-            key_buses = [
-                "101",
-                "108",
-                "610",
-            ]
             bus_voltages = {}
             for bus in key_buses:
                 self.dss.Circuit.SetActiveBus(bus)
@@ -60,79 +78,75 @@ class DSSWorker:
                     if len(voltages) >= 2
                     else 0
                 )
-                bus_voltages[f"V_{bus}"] = voltage_mag
+                bus_voltages[bus] = voltage_mag
 
             # Get PV and Storage data
-            self.dss.Circuit.SetActiveElement("PVSystem.myPV")
-            pv_power = self.dss.CktElement.Powers()
-            pv_real_power = pv_power[0] if pv_power else 0
-            pv_reactive_power = pv_power[1] if len(pv_power) > 1 else 0
+            pv_powers = {}
+            for pv in key_pvs:
+                self.dss.Circuit.SetActiveElement(pv)
+                pv_power = tuple_to_powerflow(self.dss.CktElement.Powers())
+                pv_powers[pv] = pv_power
 
-            self.dss.Circuit.SetActiveElement("Storage.mystorage")
-            storage_power = self.dss.CktElement.Powers()
-            storage_real_power = storage_power[0] if storage_power else 0
-            storage_reactive_power = storage_power[1] if len(storage_power) > 1 else 0
+            storage_powers = {}
+            for storage in key_storages:
+                self.dss.Circuit.SetActiveElement(storage)
+                storage_power = tuple_to_powerflow(self.dss.CktElement.Powers())
+                storage_powers[storage] = storage_power
         else:
-            # Return None values if not converged
-            total_power = [float("nan"), float("nan")]
-            losses = [float("nan"), float("nan")]
-            bus_voltages = {
-                f"V_{bus}": float("nan") for bus in ["101", "108", "610", "sourcebus"]
-            }
-            pv_real_power = pv_reactive_power = float("nan")
-            storage_real_power = storage_reactive_power = float("nan")
+            logger.warning("Power flow did not converge")
+            total_power = PowerFlow()
+            losses = PowerFlow()
+            bus_voltages = {bus: float("nan") for bus in key_buses}
+            pv_powers = {pv: PowerFlow() for pv in key_pvs}
+            storage_powers = {storage: PowerFlow() for storage in key_storages}
+        return SimulationResult(
+            curr_datetime=curr_datetime.isoformat(),
+            converged=True if converged else False,
+            solve_time_ms=delta_time,
+            total_power=total_power,
+            losses=losses,
+            bus_voltages=bus_voltages,
+            pv_powers=pv_powers,
+            storage_powers=storage_powers,
+        )
 
-        # Store results
-        result = {
-            "datetime": datetime(2024, 1, 1)
-            + timedelta(
-                hours=current_hour, minutes=current_minute, seconds=current_second
-            ),
-            "converged": converged,
-            "solve_time_ms": solve_time * 1000,
-            "total_real_power_kW": total_power[0] if total_power else float("nan"),
-            "total_reactive_power_kVAr": (
-                total_power[1] if len(total_power) > 1 else float("nan")
-            ),
-            "losses_real_kW": losses[0] if losses else float("nan"),
-            "losses_reactive_kVAr": losses[1] if len(losses) > 1 else float("nan"),
-            "pv_real_power_kW": pv_real_power,
-            "pv_reactive_power_kVAr": pv_reactive_power,
-            "storage_real_power_kW": storage_real_power,
-            "storage_reactive_power_kVAr": storage_reactive_power,
-        }
-
-        # Add bus voltages
-        result.update(bus_voltages)
+    def solve(
+        self,
+        curr_datetime: datetime,
+        pv_multiplier: float,
+    ) -> SimulationResult:
+        """Run power flow and extract results"""
+        delta_time = self._solve(pv_multiplier)
+        result = self.get_results(delta_time, curr_datetime)
         return result
 
 
-def run_daily_powerflow(total_runs=24 * 1):
-    """Run power flow analysis for each hour of a day using Ray for parallel execution"""
-
-    # Get system info
-    cpu_count = psutil.cpu_count() or 10
+def run_daily_powerflow(
+    dss_filename: str = "Run_QSTS.dss",
+    total_runs: int = 24 * 1,
+) -> pd.DataFrame:
+    """
+    Run power flow analysis for each hour of a day using Ray for parallel execution
+    """
+    cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
     logger.info(f"System has {cpu_count} CPU cores available")
 
-    # Initialize Ray
-    if not ray.is_initialized():
-        ray.init()
+    init_ray()
 
-    # Get current working directory and environment variables
-    base_dir = os.getcwd()
+    basedir = os.getcwd()
     env_vars = {
         "INTERNAL_DSSFILES_FOLDER": os.environ.get("INTERNAL_DSSFILES_FOLDER", ""),
         "DSS_EXPORT_FOLDER": os.environ.get("DSS_EXPORT_FOLDER", ""),
         "EXTERNAL_DSSFILES_FOLDER": os.environ.get("EXTERNAL_DSSFILES_FOLDER", ""),
     }
 
-    temp_file = setup_circuit("Run_QSTS.dss")
+    temp_file = setup_circuit(dss_filename)
     pv_multipliers = load_pv_profile()
 
     run_indices = list(range(total_runs))
 
     workers = [
-        DSSWorker.remote(temp_file, base_dir, env_vars) for _ in range(cpu_count - 1)
+        DSSWorker.remote(basedir, temp_file, env_vars) for _ in range(cpu_count - 1)
     ]
 
     # Dynamic task assignment: assign new run_idx to a worker as soon as it is free
@@ -145,7 +159,13 @@ def run_daily_powerflow(total_runs=24 * 1):
         try:
             run_idx = next(run_iter)
             futures.append(
-                (worker, worker.solve.remote(run_idx, pv_multipliers[run_idx]))
+                (
+                    worker,
+                    worker.solve.remote(
+                        datetime(2024, 1, 1) + timedelta(hours=run_idx),
+                        pv_multipliers[run_idx],
+                    ),
+                )
             )
         except StopIteration:
             break
@@ -175,13 +195,15 @@ def run_daily_powerflow(total_runs=24 * 1):
     os.remove(temp_file)
 
     # Convert to DataFrame
-    df = pd.DataFrame(results)
+    df = pd.DataFrame(
+        [r.__dict__ if hasattr(r, "__dict__") else dict(r) for r in results]
+    )
 
     # Sort by datetime to ensure proper order
-    df = df.sort_values("datetime").reset_index(drop=True)
+    df = df.sort_values("curr_datetime").reset_index(drop=True)
 
     csv_path = os.path.join(
-        os.getenv("DSS_EXPORT_FOLDER", ""), "daily_powerflow_hourly_results.csv"
+        env_vars["DSS_EXPORT_FOLDER"], "daily_powerflow_hourly_results.csv"
     )
     df.to_csv(csv_path, index=False)
     logger.info(f"Results saved to: {csv_path}")
@@ -196,8 +218,6 @@ def run_daily_powerflow(total_runs=24 * 1):
     avg_solve_time = df["solve_time_ms"].mean()
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
-    if ray.is_initialized():
-        ray.shutdown()
-        logger.info("Ray shutdown complete.")
+    shutdown_ray()
 
     return df

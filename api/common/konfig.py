@@ -1,1 +1,2 @@
 SECRET_KEY = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
+MAX_CPU_COUNT = 32

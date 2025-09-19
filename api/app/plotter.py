@@ -411,9 +411,29 @@ def create_qsts_plots(df: pd.DataFrame):
     )
 
     # 1. System Total Power
+
+    df["total_real_power_kW"] = df["total_power"].apply(lambda x: x.real_power_kW)
+    df["total_reactive_power_kVAr"] = df["total_power"].apply(
+        lambda x: x.reactive_power_kVAr
+    )
+    df["losses_real_kW"] = df["losses"].apply(lambda x: x.real_power_kW)
+    df["losses_reactive_kVAr"] = df["losses"].apply(lambda x: x.reactive_power_kVAr)
+    df["pv_real_power_kW"] = df["pv_powers"].apply(
+        lambda x: x["PVSystem.myPV"].real_power_kW
+    )
+    df["pv_reactive_power_kVAr"] = df["pv_powers"].apply(
+        lambda x: x["PVSystem.myPV"].reactive_power_kVAr
+    )
+    df["storage_real_power_kW"] = df["storage_powers"].apply(
+        lambda x: x["Storage.mystorage"].real_power_kW
+    )
+    df["storage_reactive_power_kVAr"] = df["storage_powers"].apply(
+        lambda x: x["Storage.mystorage"].reactive_power_kVAr
+    )
+
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["total_real_power_kW"],
             name="Real Power (kW)",
             line=dict(color="blue"),
@@ -423,7 +443,7 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["total_reactive_power_kVAr"],
             name="Reactive Power (kVAr)",
             line=dict(color="red"),
@@ -434,13 +454,15 @@ def create_qsts_plots(df: pd.DataFrame):
     )
 
     # 2. Bus Voltages
+
+    df = df.join(pd.json_normalize(df["bus_voltages"]).add_prefix("V_"))  # type: ignore
     voltage_cols = [col for col in df.columns if col.startswith("V_")]
     colors = px.colors.qualitative.Set1
     for i, col in enumerate(voltage_cols):
         bus_name = col.replace("V_", "")
         fig.add_trace(
             go.Scatter(
-                x=df["datetime"],
+                x=df["curr_datetime"],
                 y=df[col],
                 name=f"Bus {bus_name}",
                 line=dict(color=colors[i % len(colors)]),
@@ -452,7 +474,7 @@ def create_qsts_plots(df: pd.DataFrame):
     # 3. PV System Power
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["pv_real_power_kW"],
             name="PV Real Power (kW)",
             line=dict(color="orange"),
@@ -462,7 +484,7 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["pv_reactive_power_kVAr"],
             name="PV Reactive Power (kVAr)",
             line=dict(color="yellow"),
@@ -475,7 +497,7 @@ def create_qsts_plots(df: pd.DataFrame):
     # 4. Storage System Power
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["storage_real_power_kW"],
             name="Storage Real Power (kW)",
             line=dict(color="green"),
@@ -485,7 +507,7 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["storage_reactive_power_kVAr"],
             name="Storage Reactive Power (kVAr)",
             line=dict(color="lightgreen"),
@@ -498,7 +520,7 @@ def create_qsts_plots(df: pd.DataFrame):
     # 5. System Losses
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["losses_real_kW"],
             name="Real Losses (kW)",
             line=dict(color="red"),
@@ -508,7 +530,7 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["losses_reactive_kVAr"],
             name="Reactive Losses (kVAr)",
             line=dict(color="pink"),
@@ -521,7 +543,7 @@ def create_qsts_plots(df: pd.DataFrame):
     # 6. Solution Performance
     fig.add_trace(
         go.Scatter(
-            x=df["datetime"],
+            x=df["curr_datetime"],
             y=df["solve_time_ms"],
             name="Solve Time (ms)",
             line=dict(color="purple"),
