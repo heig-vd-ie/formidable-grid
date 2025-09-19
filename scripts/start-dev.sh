@@ -10,6 +10,7 @@ tmux new-session -d -s "$SESSION_NAME" -c "$PROJECT_DIR"
 # Split window into 3 horizontal panes
 tmux split-window -h -t "$SESSION_NAME:0"
 tmux split-window -h -t "$SESSION_NAME:0.1"
+tmux split-window -h -t "$SESSION_NAME:0.2"
 
 tmux select-layout -t "$SESSION_NAME:0" even-vertical
 
@@ -22,8 +23,11 @@ tmux send-keys -t "$SESSION_NAME:0.1" "source .envrc && cd frontend && npm run d
 # Pane 2:
 tmux send-keys -t "$SESSION_NAME:0.2" "source .envrc &&cd frontend && npm run api" C-m
 
+# Pane 3:
+# tmux send-keys -t "" C-m
+
 # Focus on the which pane
-tmux select-pane -t "$SESSION_NAME:0.0"
+tmux select-pane -t "$SESSION_NAME:0.3"
 
 # Attach to the session
 tmux attach-session -t "$SESSION_NAME"
