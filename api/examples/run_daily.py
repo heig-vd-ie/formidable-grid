@@ -106,12 +106,6 @@ class DSSWorker:
         return result
 
 
-def to_iterator(obj_ids):
-    while obj_ids:
-        done, obj_ids = ray.wait(obj_ids)
-        yield ray.get(done[0])
-
-
 def run_daily_powerflow(total_runs=24 * 1):
     """Run power flow analysis for each hour of a day using Ray for parallel execution"""
 
