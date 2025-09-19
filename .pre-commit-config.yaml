@@ -6,6 +6,13 @@ repos:
         entry: make run-tests-py
         language: system
         files: "^api/.*"   # only run if files under api/ changed
+        stages: []
+
+      - id: isort
+        name: Run isort on API
+        entry: isort .
+        language: system
+        files: '^api/.*\.py$'
 
       - id: black
         name: Run Black on API

@@ -1,5 +1,4 @@
-from app.helpers import setup_and_run_circuit
-from app.plotter import plot_grid_topology, plot_monitor_results
+from app import plot_grid_topology, plot_monitor_results, setup_and_run_circuit
 
 if __name__ == "__main__":
     setup_and_run_circuit("Run_Dynamics.dss")
