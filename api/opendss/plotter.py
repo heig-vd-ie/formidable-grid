@@ -9,7 +9,9 @@ from matplotlib.lines import Line2D
 import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
+from setup_log import setup_logger
 
+logger = setup_logger(__name__)
 
 matplotlib.use("Agg")  # Use non-interactive backend
 
@@ -26,7 +28,7 @@ def plot_grid_topology(base_size_multiplier=1.0):
     # Get all buses using OpenDSS direct interface
     bus_names = dss.Circuit.AllBusNames()
     if not bus_names:
-        print("No buses found in circuit")
+        logger.warning("No buses found in circuit")
         return
 
     # Create matplotlib figure
@@ -263,7 +265,7 @@ def plot_grid_topology(base_size_multiplier=1.0):
     # Save the plot as both SVG and HTML
     svg_path = os.path.join(os.getenv("DSS_EXPORT_FOLDER", ""), "network_topology.svg")
     plt.savefig(svg_path, format="svg", dpi=300, bbox_inches="tight")
-    print(f"Grid topology plot (SVG) saved to: {svg_path}")
+    logger.info(f"Grid topology plot (SVG) saved to: {svg_path}")
 
     plt.close(fig)
 
@@ -274,7 +276,7 @@ def plot_monitor_results():
     # Get all monitor names
     monitor_names = dss.Monitors.AllNames()
     if not monitor_names:
-        print("No monitors found in the circuit")
+        logger.warning("No monitors found in the circuit")
         return
     for monitor_name in monitor_names:
         # Set active monitor
@@ -378,10 +380,10 @@ def plot_monitor_results():
                 os.getenv("DSS_EXPORT_FOLDER", ""), f"{monitor_name}_results.html"
             )
             fig.write_html(output_path)
-            print(f"Monitor plot saved to: {output_path}")
+            logger.info(f"Monitor plot saved to: {output_path}")
 
         else:
-            print(f"No data found for monitor {monitor_name}")
+            logger.warning(f"No data found for monitor {monitor_name}")
 
 
 def create_qsts_plots(df: pd.DataFrame):
@@ -591,4 +593,4 @@ def create_qsts_plots(df: pd.DataFrame):
         os.getenv("DSS_EXPORT_FOLDER", ""), "daily_powerflow_hourly_plots.html"
     )
     fig.write_html(html_path)
-    print(f"Interactive plots saved to: {html_path}")
+    logger.info(f"Interactive plots saved to: {html_path}")

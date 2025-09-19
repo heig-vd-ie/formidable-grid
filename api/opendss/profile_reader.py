@@ -4,9 +4,9 @@ import numpy as np
 from datetime import datetime
 
 
-def load_pv_profile():
+def load_pv_profile(file_name: str = "PV_PROFILE.csv") -> np.ndarray:
     """Load and process the PV profile data"""
-    df = pd.read_csv(f"{os.getenv('INTERNAL_DSSFILES_FOLDER')}/PV_PROFILE.csv")
+    df = pd.read_csv(f"{os.getenv('INTERNAL_DSSFILES_FOLDER')}/{file_name}")
     df["datetime"] = df.apply(
         lambda row: f"{row['DATE (MM/DD/YYYY)']} {row['HST']}", axis=1
     )

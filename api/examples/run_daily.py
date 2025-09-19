@@ -1,14 +1,17 @@
 import os
 import time
+import ray
+import psutil
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 from datetime import datetime, timedelta
-from plotter import create_qsts_plots
-from helpers import setup_circuit
-import ray
-import psutil
-from profile_reader import load_pv_profile
+from opendss.plotter import create_qsts_plots
+from opendss.helpers import setup_circuit
+from opendss.profile_reader import load_pv_profile
+from setup_log import setup_logger
+
+logger = setup_logger(__name__)
 
 
 @ray.remote
@@ -109,12 +112,12 @@ def to_iterator(obj_ids):
         yield ray.get(done[0])
 
 
-def run_daily_powerflow(total_runs=24 * 60):
+def run_daily_powerflow(total_runs=24 * 1):
     """Run power flow analysis for each hour of a day using Ray for parallel execution"""
 
     # Get system info
     cpu_count = psutil.cpu_count() or 10
-    print(f"System has {cpu_count} CPU cores available")
+    logger.info(f"System has {cpu_count} CPU cores available")
 
     # Initialize Ray
     if not ray.is_initialized():
@@ -186,18 +189,18 @@ def run_daily_powerflow(total_runs=24 * 60):
         os.getenv("DSS_EXPORT_FOLDER", ""), "daily_powerflow_hourly_results.csv"
     )
     df.to_csv(csv_path, index=False)
-    print(f"Results saved to: {csv_path}")
+    logger.info(f"Results saved to: {csv_path}")
 
     # Check convergence
     converged_count = df["converged"].sum()
-    print(
+    logger.info(
         f"Convergence rate: {converged_count}/{total_runs} ({100*converged_count/total_runs:.1f}%)"
     )
 
     # Performance summary
     avg_solve_time = df["solve_time_ms"].mean()
-    print(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
-    print(f"Speedup achieved through parallelization!")
+    logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
+    logger.info(f"Speedup achieved through parallelization!")
 
     return df
 
@@ -207,4 +210,4 @@ if __name__ == "__main__":
     create_qsts_plots(df)
     if ray.is_initialized():
         ray.shutdown()
-        print("Ray shutdown complete.")
+        logger.info("Ray shutdown complete.")
