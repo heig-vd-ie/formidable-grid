@@ -14,7 +14,7 @@ from app.helpers import setup_circuit
 from app.models import PowerFlow, SimulationResult, tuple_to_powerflow
 
 # from app.profile_reader import load_pv_profile
-from common.konfig import LOCAL_MODE, MAX_CPU_COUNT, MAX_ITERATION, SMALL_NUMBER
+from common.konfig import MAX_CPU_COUNT, MAX_ITERATION, SMALL_NUMBER
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -247,7 +247,13 @@ def run_daily_powerflow(
     pbar.close()
 
     os.remove(temp_file)
+    return _save_and_summarize_results(results, env_vars, total_runs)
 
+
+def _save_and_summarize_results(
+    results: list[SimulationResult], env_vars: dict[str, str], total_runs: int
+) -> pd.DataFrame:
+    """Save results to CSV and print summary statistics"""
     # Convert to DataFrame
     df = pd.DataFrame(
         [r.__dict__ if hasattr(r, "__dict__") else dict(r) for r in results]
