@@ -14,7 +14,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
+                "PYTHONPATH": "${workspaceFolder}/api",
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
                 "NUMBA_DISABLE_JIT": "1",
                 "NUMBA_CACHE_DIR": "/tmp/numba_cache",
@@ -36,7 +36,7 @@
             "console": "integratedTerminal",
             "justMyCode": false,
             "env": {
-                "PYTHONPATH": "${workspaceFolder}/src",
+                "PYTHONPATH": "${workspaceFolder}/api",
                 "GRB_LICENSE_FILE": "${env:HOME}/gurobi_license/gurobi.lic",
                 "NUMBA_DISABLE_JIT": "1",
                 "NUMBA_CACHE_DIR": "/tmp/numba_cache",

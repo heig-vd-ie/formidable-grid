@@ -1,10 +1,10 @@
-New "Storage.mystorage1" phases=3 conn=delta bus1=1 kV=0.416 kva=800 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
-~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.3 KVDC=0.700 PITol=0.1
-New "Storage.mystorage2" phases=3 conn=delta bus1=151 kV=0.416 kva=800 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
-~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.3 KVDC=0.700 PITol=0.1
-New "Storage.mystorage3" phases=3 conn=delta bus1=51 kV=0.416 kva=10 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
-~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.01 KVDC=0.700 PITol=1.0
+// New "Storage.mystorage1" phases=3 conn=delta bus1=1 kV=0.416 kva=800 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
+// ~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.3 KVDC=0.700 PITol=0.1
+// New "Storage.mystorage2" phases=3 conn=delta bus1=151 kV=0.416 kva=800 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
+// ~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.3 KVDC=0.700 PITol=0.1
+// New "Storage.mystorage3" phases=3 conn=delta bus1=51 kV=0.416 kva=10 kWrated=800 kWhrated=6000 %stored=100 %reserve=20 
+// ~ %EffCharge=90 %EffDischarge=90 %IdlingkW=1 %R=1 %X=100 State=DISCHARGING kP=0.01 KVDC=0.700 PITol=1.0
 
-New InvControl.StoCtrl_Storage1 DERList=[Storage.mystorage1] mode=GFM !eventlog=yes
-New InvControl.StoCtrl_Storage2 DERList=[Storage.mystorage2] mode=GFM !eventlog=yes
-New InvControl.StoCtrl_Storage3 DERList=[Storage.mystorage3] mode=GFL !eventlog=yes
+// New InvControl.StoCtrl_Storage1 DERList=[Storage.mystorage1] mode=GFM !eventlog=yes
+// New InvControl.StoCtrl_Storage2 DERList=[Storage.mystorage2] mode=GFM !eventlog=yes
+// New InvControl.StoCtrl_Storage3 DERList=[Storage.mystorage3] mode=GFM !eventlog=yes

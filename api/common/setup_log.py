@@ -3,7 +3,9 @@ import sys
 
 
 def setup_logger(
-    name: str = __name__, log_level: int = logging.DEBUG, log_file: str | None = None
+    name: str = __name__,
+    log_level: int = logging.DEBUG,
+    log_file: str | None = None,
 ) -> logging.Logger:
     """Sets up a logger with both console and file handlers."""
     logger = logging.getLogger(name)

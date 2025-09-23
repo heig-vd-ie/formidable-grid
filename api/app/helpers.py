@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
 import tempfile
+
 from opendssdirect import dss
-from setup_log import setup_logger
+
+from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 
