@@ -4,7 +4,6 @@ import os
 import random
 import time
 
-from main import RayInit, RayShutdown
 import numpy as np
 import pandas as pd
 import psutil
@@ -27,9 +26,17 @@ from common.setup_log import setup_logger
 logger = setup_logger(__name__)
 
 
+def ray_init():
+    return ray.init()
+
+
+def ray_shutdown():
+    ray.shutdown()
+
+
 @ray.remote
 class DSSWorker:
-    def __init__(self, basedir: str, temp_file: str, env_vars: dict):
+    def __init__(self, basedir: str, temp_file: str, env_vars: dict, **kwargs):
         from opendssdirect import dss
 
         self.basedir = basedir
@@ -38,6 +45,8 @@ class DSSWorker:
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         self.__init_dir(env_vars)
         self._initialize_circuit(temp_file)
+        self.buses = self.dss.Circuit.AllBusNames() or []
+        self._add_extra_units(**kwargs)
         self.__init_components()
 
     def __init_dir(self, env_vars: dict):
@@ -53,7 +62,7 @@ class DSSWorker:
         self.generators = self.dss.Generators.AllNames() or []
         self.storages = self.dss.Storages.AllNames() or []
         self.pvsystems = self.dss.PVsystems.AllNames() or []
-        self.buses = self.dss.Circuit.AllBusNames() or []
+
         self.loadshapes = self.dss.LoadShape.AllNames() or []
         self.vsources = self.dss.Vsources.AllNames() or []
 
@@ -62,19 +71,62 @@ class DSSWorker:
         self.dss.Command("Clear")
         self.dss.Command(f'Compile "{temp_file}"')
 
-    def _set_load_shape_multipliers(self):
+    def _change_seed(self, seed_number: int):
+        """Change the random seed for reproducibility"""
+        random.seed(seed_number)
+        np.random.seed(seed_number)
+
+    def _add_extra_units(
+        self,
+        number_of_pvs: int = 5,
+        pv_capacity_kva_mean: float = 10.0,
+        storage_capacity_kw_mean: float = 20.0,
+        grid_forming_percent: float = 0.5,
+        seed_number: int = 42,
+    ):
+        """Add extra PV systems and storage units to the circuit for testing"""
+        self.gfm_inv = []
+        for i in range(number_of_pvs):
+            self._change_seed(seed_number + i)
+            bus_name = random.choice(self.buses)
+            pv_capacity_kva = max([0, pv_capacity_kva_mean * random.uniform(0.5, 1.5)])
+            storage_capacity_kva = max(
+                [0, storage_capacity_kw_mean * random.uniform(0.5, 1.5)]
+            )
+            storage_capacity_kwh = storage_capacity_kva * 4.0
+            self.dss.Command(self._add_pv_systems(i, bus_name, pv_capacity_kva))
+            self.dss.Command(
+                self._add_storage_units(
+                    i, bus_name, storage_capacity_kva, storage_capacity_kwh
+                )
+            )
+            if random.random() < grid_forming_percent:  # is it grid-forming?
+                self.gfm_inv.append(i)
+
+        self.__init_components()
+
+    def _add_pv_systems(self, i, bus_name, pv_capacity_kva):
+        return f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily=pvshape kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
+
+    def _add_storage_units(
+        self, i, bus_name, storage_capacity_kva, storage_capacity_kwh
+    ):
+        return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} %stored=100 %reserve=20 '
+
+    def _set_load_shape_multipliers(self, t: int):
         """Randomly set load shape multipliers for all load shapes"""
         # TODO: Replace with actual profile data
         for i in range(len(self.loadshapes)):
+            self._change_seed(i + int(time.time()) + t * 1000)
             multiplier = random.uniform(0.0, 1.0)
             self.dss.run_command(
                 f"Edit LoadShape.{self.loadshapes[i]} npts=1 mult=[{multiplier}]"
             )
 
-    def _solve(self):
+    def _solve(self, t: int = 0):
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
-        self._set_load_shape_multipliers()
+        self._set_load_shape_multipliers(t=t)
         self.dss.run_command("Solve")
         freq = self._update_freq(NOMINAL_FREQUENCY)
         for _ in range(MAX_ITERATION):
@@ -159,18 +211,20 @@ class DSSWorker:
 
     def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
-        delta_time, freq = self._solve()
+        delta_time, freq = self._solve(t=int(curr_datetime.hour))
         self.dump_results(delta_time, curr_datetime, freq=freq)
 
 
-def run_daily_powerflow(dss_filename: str = "Run_QSTS.dss", total_runs: int = 24 * 1):
+def run_daily_powerflow(
+    dss_filename: str = "Run_QSTS.dss", total_runs: int = 24 * 1, **kwargs
+):
     """
     Run power flow analysis for each hour of a day using Ray for parallel execution
     """
     cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
     logger.info(f"System has {cpu_count} CPU cores available")
 
-    RayInit().get()  # Ensure Ray is initialized
+    ray_init()
 
     basedir = os.getcwd()
     env_vars = {
@@ -185,7 +239,8 @@ def run_daily_powerflow(dss_filename: str = "Run_QSTS.dss", total_runs: int = 24
     run_indices = list(range(total_runs))
 
     workers = [
-        DSSWorker.remote(basedir, temp_file, env_vars) for _ in range(cpu_count - 1)
+        DSSWorker.remote(basedir, temp_file, env_vars, **kwargs)
+        for _ in range(cpu_count - 1)
     ]
 
     # Dynamic task assignment: assign new run_idx to a worker as soon as it is free
@@ -253,5 +308,5 @@ def _save_and_summarize_results(results: list[SimulationResponse]) -> pd.DataFra
     avg_solve_time = df["solve_time_ms"].mean()
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
-    RayShutdown().get()  # Shutdown Ray
+    ray_shutdown()
     return df

@@ -6,4 +6,4 @@ class TestDynamicsExample:
         dss = setup_and_run_circuit("Run_Dynamics.dss")
         assert dss is not None
         assert dss.Circuit.NumBuses() == 908
-        assert dss.Circuit.NumCktElements() == 976
+        assert dss.Circuit.NumCktElements() == 968

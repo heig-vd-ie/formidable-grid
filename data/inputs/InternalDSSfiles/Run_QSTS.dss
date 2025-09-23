@@ -5,6 +5,7 @@ Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewMonitors.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewLoadShapes.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewPvs.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewStorages.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewVsources.dss
 
 Set MaxControlIter=30 LoadMult=1.0 mode=daily stepsize=1m number=1440 loadshapeclass=daily time=(0,0)
 
