@@ -1,10 +1,8 @@
 from datetime import datetime, timedelta
-from email.mime import base
 import os
-from pathlib import Path
 import time
 
-from main import init_ray, shutdown_ray
+from main import RayInit, RayShutdown
 import numpy as np
 import pandas as pd
 import psutil
@@ -131,7 +129,7 @@ def run_daily_powerflow(
     cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
     logger.info(f"System has {cpu_count} CPU cores available")
 
-    init_ray()
+    RayInit().get()  # Ensure Ray is initialized
 
     basedir = os.getcwd()
     env_vars = {
@@ -218,6 +216,6 @@ def run_daily_powerflow(
     avg_solve_time = df["solve_time_ms"].mean()
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
-    shutdown_ray()
 
+    RayShutdown().get()  # Shutdown Ray
     return df
