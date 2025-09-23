@@ -12,8 +12,9 @@ from tqdm import tqdm
 
 from app.helpers import setup_circuit
 from app.models import PowerFlow, SimulationResult, tuple_to_powerflow
-from app.profile_reader import load_pv_profile
-from common.konfig import MAX_CPU_COUNT
+
+# from app.profile_reader import load_pv_profile
+from common.konfig import LOCAL_MODE, MAX_CPU_COUNT, MAX_ITERATION, SMALL_NUMBER
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -23,9 +24,6 @@ logger = setup_logger(__name__)
 class DSSWorker:
     def __init__(self, basedir: str, temp_file: str, env_vars: dict):
         from opendssdirect import dss
-
-        random.seed(42)
-        np.random.seed(42)
 
         self.basedir = basedir
         self.temp_file = temp_file
@@ -65,8 +63,44 @@ class DSSWorker:
         time_start = time.time()
         self._set_load_shape_multipliers()
         self.dss.run_command("Solve")
+        freq = self._update_freq(50.0)
+        for _ in range(MAX_ITERATION):
+            self.dss.run_command("Solve")
+            new_freq = self._update_freq(freq)
+            if abs(new_freq - freq) < SMALL_NUMBER:
+                break
+            freq = new_freq
         time_end = time.time()
-        return time_end - time_start
+        return time_end - time_start, freq
+
+    def _update_freq(self, freq: float):
+        """Update the system frequency in the OpenDSS simulation"""
+        self.dss.Circuit.SetActiveElement("Vsource.V1")
+        p_kw = self.dss.CktElement.Powers()[0]  # list: [P1,Q1, P2,Q2, ...]
+        q_kvar = self.dss.CktElement.Powers()[1]
+        Δp = p_kw
+        Δq = q_kvar
+        freq -= Δp * 0.0001
+        self.dss.run_command(f"Edit Vsource.V1 basefreq={freq}")
+        for storage in self.storages:
+            self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
+            power = self.dss.CktElement.Powers()
+            p_kw = power[0]
+            q_kvar = power[1]
+            new_p_kw = p_kw + Δp * 0.1
+            new_q_kvar = q_kvar + Δq * 0.1
+            self.dss.run_command(
+                f"Edit Storage.{storage} kW={new_p_kw:.2f} kvar={new_q_kvar:.2f}"
+            )
+        for pv in self.pvsystems:
+            self.dss.Circuit.SetActiveElement(f"PVSystem.{pv}")
+            power = self.dss.CktElement.Powers()
+            p_kw = power[0]
+            q_kvar = power[1]
+            new_p_kw = p_kw
+            new_q_kvar = q_kvar + Δq * 0.1
+            self.dss.run_command(f"Edit PVSystem.{pv} kvar={new_q_kvar:.2f}")
+        return freq
 
     def get_results(
         self,
@@ -75,6 +109,7 @@ class DSSWorker:
         key_buses: list[str] | None = None,
         key_storages: list[str] | None = None,
         key_pvs: list[str] | None = None,
+        freq: float = 50.0,
     ) -> SimulationResult:
         """Extract results from the OpenDSS simulation"""
         if key_buses is None:
@@ -128,16 +163,16 @@ class DSSWorker:
             bus_voltages=bus_voltages,
             pv_powers=pv_powers,
             storage_powers=storage_powers,
+            frequency=freq,
         )
 
     def solve(
         self,
         curr_datetime: datetime,
-        pv_multiplier: float,
     ) -> SimulationResult:
         """Run power flow and extract results"""
-        delta_time = self._solve()
-        result = self.get_results(delta_time, curr_datetime)
+        delta_time, freq = self._solve()
+        result = self.get_results(delta_time, curr_datetime, freq=freq)
         return result
 
 
@@ -161,7 +196,7 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
-    pv_multipliers = load_pv_profile()
+    # pv_multipliers = load_pv_profile()
 
     run_indices = list(range(total_runs))
 
@@ -183,7 +218,6 @@ def run_daily_powerflow(
                     worker,
                     worker.solve.remote(
                         datetime(2024, 1, 1) + timedelta(hours=run_idx),
-                        pv_multipliers[run_idx],
                     ),
                 )
             )
@@ -204,7 +238,7 @@ def run_daily_powerflow(
                 # Assign new task to this worker if any left
                 try:
                     run_idx = next(run_iter)
-                    new_future = worker.solve.remote(run_idx, pv_multipliers[run_idx])
+                    new_future = worker.solve.remote(run_idx)
                     futures[i] = (worker, new_future)
                 except StopIteration:
                     # No more tasks, remove this worker from the list

@@ -7,4 +7,6 @@ New "Storage.mystorage3" phases=3 conn=delta bus1=51 kV=0.416 kva=10 kWrated=800
 
 New InvControl.StoCtrl_Storage1 DERList=[Storage.mystorage1] mode=GFM !eventlog=yes
 New InvControl.StoCtrl_Storage2 DERList=[Storage.mystorage2] mode=GFM !eventlog=yes
-New InvControl.StoCtrl_Storage3 DERList=[Storage.mystorage3] mode=GFL !eventlog=yes
+New InvControl.StoCtrl_Storage3 DERList=[Storage.mystorage3] mode=GFM !eventlog=yes
+
+New vsource.V1      angle=0    basekv=0.416      baseMVA=0.1     enabled=y      MVAsc3=100      MVAsc1=100      bus1=1 phases=3 pu=1.0

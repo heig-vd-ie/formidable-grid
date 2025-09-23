@@ -400,7 +400,7 @@ def create_qsts_plots(df: pd.DataFrame):
             "Bus Voltages vs Time",
             "PV System Power vs Time",
             "Storage System Power vs Time",
-            "System Losses vs Time",
+            "Frequency vs Time",
             "Solution Performance",
         ),
         specs=[
@@ -517,12 +517,12 @@ def create_qsts_plots(df: pd.DataFrame):
         secondary_y=True,
     )
 
-    # 5. System Losses
+    # 5. Frequency
     fig.add_trace(
         go.Scatter(
             x=df["curr_datetime"],
-            y=df["losses_real_kW"],
-            name="Real Losses (kW)",
+            y=df["frequency"],
+            name="Frequency (Hz)",
             line=dict(color="red"),
         ),
         row=3,

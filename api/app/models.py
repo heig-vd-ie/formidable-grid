@@ -17,6 +17,7 @@ class SimulationResult(BaseModel):
     bus_voltages: dict[str, float]
     pv_powers: dict[str, PowerFlow]
     storage_powers: dict[str, PowerFlow]
+    frequency: float | None = None
 
 
 def tuple_to_powerflow(power_tuple: tuple[float, float]) -> PowerFlow:
