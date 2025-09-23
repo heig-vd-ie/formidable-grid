@@ -1,11 +1,12 @@
 from unittest.mock import patch
 
-from examples.run_daily import run_daily_powerflow
+from app.dss_worker import read_results, run_daily_powerflow
 
 
 class TestDailyExample:
     @patch("app.dss_worker.MAX_ITERATION", 1)
     def test_daily_example(self):
-        df = run_daily_powerflow(total_runs=1)
+        run_daily_powerflow(total_runs=1)
+        df = read_results()
         assert df is not None
-        assert df.shape[0] == 1
+        assert df.shape[0] >= 1

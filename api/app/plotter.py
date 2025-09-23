@@ -18,6 +18,56 @@ logger = setup_logger(__name__)
 matplotlib.use("Agg")  # Use non-interactive backend
 
 
+def extract_voltages(df: pd.DataFrame, bus_name: str) -> pd.DataFrame:
+    """Extract voltage magnitudes and angles for a specific bus from the results DataFrame"""
+    voltages = df
+    voltages["bus_name"] = df["voltages"].apply(lambda v: v.get(bus_name, []))
+    voltages["mag_a"] = voltages["bus_name"].apply(
+        lambda v: np.sqrt(v[0] ** 2 + v[1] ** 2) if v else np.nan
+    )
+    voltages["ang_a"] = voltages["bus_name"].apply(
+        lambda v: np.degrees(np.arctan2(v[1], v[0])) if v else np.nan
+    )
+    voltages["mag_b"] = voltages["bus_name"].apply(
+        lambda v: np.sqrt(v[2] ** 2 + v[3] ** 2) if len(v) >= 4 else np.nan
+    )
+    voltages["ang_b"] = voltages["bus_name"].apply(
+        lambda v: np.degrees(np.arctan2(v[3], v[2])) if len(v) >= 4 else np.nan
+    )
+    voltages["mag_c"] = voltages["bus_name"].apply(
+        lambda v: np.sqrt(v[4] ** 2 + v[5] ** 2) if len(v) >= 6 else np.nan
+    )
+    voltages["ang_c"] = voltages["bus_name"].apply(
+        lambda v: np.degrees(np.arctan2(v[5], v[4])) if len(v) >= 6 else np.nan
+    )
+    return voltages[["timestamp", "mag_a", "ang_a", "mag_b", "ang_b", "mag_c", "ang_c"]]
+
+
+def extract_powers(
+    df: pd.DataFrame, element_type: str, element_name: str
+) -> pd.DataFrame:
+    """Extract real and reactive powers for a specific element from the results DataFrame"""
+    powers = df
+    powers["element"] = df[element_type].apply(lambda e: e.get(element_name, {}))
+    powers["kW_a"] = powers["element"].apply(lambda e: e["powers"][0] if e else np.nan)
+    powers["kVAr_a"] = powers["element"].apply(
+        lambda e: e["powers"][1] if e else np.nan
+    )
+    powers["kW_b"] = powers["element"].apply(
+        lambda e: e["powers"][2] if e and len(e["powers"]) >= 4 else np.nan
+    )
+    powers["kVAr_b"] = powers["element"].apply(
+        lambda e: e["powers"][3] if e and len(e["powers"]) >= 4 else np.nan
+    )
+    powers["kW_c"] = powers["element"].apply(
+        lambda e: e["powers"][4] if e and len(e["powers"]) >= 6 else np.nan
+    )
+    powers["kVAr_c"] = powers["element"].apply(
+        lambda e: e["powers"][5] if e and len(e["powers"]) >= 6 else np.nan
+    )
+    return powers[["timestamp", "kW_a", "kVAr_a", "kW_b", "kVAr_b", "kW_c", "kVAr_c"]]
+
+
 def plot_grid_topology(base_size_multiplier=1.0):
     """Plot the grid topology using matplotlib with OpenDSS direct interface
 
@@ -396,7 +446,7 @@ def create_qsts_plots(df: pd.DataFrame):
         rows=3,
         cols=2,
         subplot_titles=(
-            "System Total Power vs Time",
+            "Losses vs Time",
             "Bus Voltages vs Time",
             "PV System Power vs Time",
             "Storage System Power vs Time",
@@ -412,30 +462,17 @@ def create_qsts_plots(df: pd.DataFrame):
 
     # 1. System Total Power
 
-    df["total_real_power_kW"] = df["total_power"].apply(lambda x: x.real_power_kW)
-    df["total_reactive_power_kVAr"] = df["total_power"].apply(
-        lambda x: x.reactive_power_kVAr
-    )
-    df["losses_real_kW"] = df["losses"].apply(lambda x: x.real_power_kW)
-    df["losses_reactive_kVAr"] = df["losses"].apply(lambda x: x.reactive_power_kVAr)
-    df["pv_real_power_kW"] = df["pv_powers"].apply(
-        lambda x: x["PVSystem.myPV"].real_power_kW
-    )
-    df["pv_reactive_power_kVAr"] = df["pv_powers"].apply(
-        lambda x: x["PVSystem.myPV"].reactive_power_kVAr
-    )
-    df["storage_real_power_kW"] = df["storage_powers"].apply(
-        lambda x: x["Storage.mystorage"].real_power_kW
-    )
-    df["storage_reactive_power_kVAr"] = df["storage_powers"].apply(
-        lambda x: x["Storage.mystorage"].reactive_power_kVAr
-    )
+    voltages = extract_voltages(df, "1")
+    storages = extract_powers(df, "storages", "mystorage1")
+    pvs = extract_powers(df, "pvsystems", "myPV")
 
+    df["losses_kw"] = df["losses"].apply(lambda x: x[0])
+    df["losses_reactive_kVAr"] = df["losses"].apply(lambda x: x[1])
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["total_real_power_kW"],
-            name="Real Power (kW)",
+            x=df["timestamp"],
+            y=df["losses_kw"],
+            name="Losses (kW)",
             line=dict(color="blue"),
         ),
         row=1,
@@ -443,9 +480,9 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["total_reactive_power_kVAr"],
-            name="Reactive Power (kVAr)",
+            x=df["timestamp"],
+            y=df["losses_reactive_kVAr"],
+            name="Losses (kVAr)",
             line=dict(color="red"),
         ),
         row=1,
@@ -454,16 +491,14 @@ def create_qsts_plots(df: pd.DataFrame):
     )
 
     # 2. Bus Voltages
-
-    df = df.join(pd.json_normalize(df["bus_voltages"]).add_prefix("V_"))  # type: ignore
-    voltage_cols = [col for col in df.columns if col.startswith("V_")]
+    voltage_cols = ["1"]
     colors = px.colors.qualitative.Set1
     for i, col in enumerate(voltage_cols):
-        bus_name = col.replace("V_", "")
+        bus_name = col
         fig.add_trace(
             go.Scatter(
-                x=df["curr_datetime"],
-                y=df[col],
+                x=voltages["timestamp"],
+                y=voltages["mag_a"],
                 name=f"Bus {bus_name}",
                 line=dict(color=colors[i % len(colors)]),
             ),
@@ -474,8 +509,8 @@ def create_qsts_plots(df: pd.DataFrame):
     # 3. PV System Power
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["pv_real_power_kW"],
+            x=pvs["timestamp"],
+            y=pvs["kW_a"],
             name="PV Real Power (kW)",
             line=dict(color="orange"),
         ),
@@ -484,8 +519,8 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["pv_reactive_power_kVAr"],
+            x=pvs["timestamp"],
+            y=pvs["kVAr_a"],
             name="PV Reactive Power (kVAr)",
             line=dict(color="yellow"),
         ),
@@ -497,8 +532,8 @@ def create_qsts_plots(df: pd.DataFrame):
     # 4. Storage System Power
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["storage_real_power_kW"],
+            x=storages["timestamp"],
+            y=storages["kW_a"],
             name="Storage Real Power (kW)",
             line=dict(color="green"),
         ),
@@ -507,8 +542,8 @@ def create_qsts_plots(df: pd.DataFrame):
     )
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
-            y=df["storage_reactive_power_kVAr"],
+            x=storages["timestamp"],
+            y=storages["kVAr_a"],
             name="Storage Reactive Power (kVAr)",
             line=dict(color="lightgreen"),
         ),
@@ -520,7 +555,7 @@ def create_qsts_plots(df: pd.DataFrame):
     # 5. Frequency
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
+            x=df["timestamp"],
             y=df["frequency"],
             name="Frequency (Hz)",
             line=dict(color="red"),
@@ -528,22 +563,11 @@ def create_qsts_plots(df: pd.DataFrame):
         row=3,
         col=1,
     )
-    fig.add_trace(
-        go.Scatter(
-            x=df["curr_datetime"],
-            y=df["losses_reactive_kVAr"],
-            name="Reactive Losses (kVAr)",
-            line=dict(color="pink"),
-        ),
-        row=3,
-        col=1,
-        secondary_y=True,
-    )
 
     # 6. Solution Performance
     fig.add_trace(
         go.Scatter(
-            x=df["curr_datetime"],
+            x=df["timestamp"],
             y=df["solve_time_ms"],
             name="Solve Time (ms)",
             line=dict(color="purple"),

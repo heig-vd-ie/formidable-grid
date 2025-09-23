@@ -1,29 +1,35 @@
-from unittest.mock import Base
-
+import numpy as np
 from pydantic import BaseModel
 
 
-class PowerFlow(BaseModel):
-    real_power_kW: float = float("nan")
-    reactive_power_kVAr: float = float("nan")
+class PowerFlowResponse(BaseModel):
+    bus_names: list[str]
+    powers: list[float]
+    voltages: list[float]
+    currents: list[float]
 
 
-class SimulationResult(BaseModel):
-    curr_datetime: str  # ISO 8601 format
+class SimulationResponse(BaseModel):
+    timesteps: str  # ISO 8601 format, comma-separated
+    solve_times_ms: float
     converged: bool
-    solve_time_ms: float
-    total_power: PowerFlow
-    losses: PowerFlow
-    bus_voltages: dict[str, float]
-    pv_powers: dict[str, PowerFlow]
-    storage_powers: dict[str, PowerFlow]
-    frequency: float | None = None
+    frequency: float
+    voltages: dict[str, list[float]]
+    lines: dict[str, PowerFlowResponse]
+    loads: dict[str, PowerFlowResponse]
+    generators: dict[str, PowerFlowResponse]
+    storages: dict[str, PowerFlowResponse]
+    pvsystems: dict[str, PowerFlowResponse]
+    vsources: dict[str, PowerFlowResponse]
 
 
-def tuple_to_powerflow(power_tuple: tuple[float, float]) -> PowerFlow:
+def tuple_to_powerflow(power_tuple: list[float]) -> list[float]:
     """Convert a tuple of (real_power_kW, reactive_power_kVAr) to a PowerFlow object."""
-    if len(power_tuple) < 1:
-        return PowerFlow(real_power_kW=None, reactive_power_kVAr=None)
-    elif len(power_tuple) < 2:
-        return PowerFlow(real_power_kW=power_tuple[0], reactive_power_kVAr=None)
-    return PowerFlow(real_power_kW=power_tuple[0], reactive_power_kVAr=power_tuple[1])
+    return [
+        power_tuple[0],
+        power_tuple[2],
+        power_tuple[4],
+        power_tuple[1],
+        power_tuple[3],
+        power_tuple[5],
+    ]

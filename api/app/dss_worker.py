@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import os
 import random
 import time
@@ -11,15 +12,14 @@ import ray
 from tqdm import tqdm
 
 from app.helpers import setup_circuit
-from app.models import PowerFlow, SimulationResult, tuple_to_powerflow
-
-# from app.profile_reader import load_pv_profile
+from app.models import SimulationResponse
 from common.konfig import (
     H_SYSTEM,
     MAX_CPU_COUNT,
     MAX_ITERATION,
     NOMINAL_FREQUENCY,
     NOMINAL_POWER,
+    OUTPUT_FOLDER,
     SMALL_NUMBER,
 )
 from common.setup_log import setup_logger
@@ -35,6 +35,7 @@ class DSSWorker:
         self.basedir = basedir
         self.temp_file = temp_file
         self.dss = dss
+        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         self.__init_dir(env_vars)
         self._initialize_circuit(temp_file)
         self.__init_components()
@@ -46,13 +47,15 @@ class DSSWorker:
 
     def __init_components(self):
         """Initialize component lists from the OpenDSS circuit"""
-        self.loads = self.dss.Loads.AllNames()
-        self.generators = self.dss.Generators.AllNames()
-        self.storages = self.dss.Storages.AllNames()
-        self.pvsystems = self.dss.PVsystems.AllNames()
-        self.buses = self.dss.Circuit.AllBusNames()
-        self.loadshapes = self.dss.LoadShape.AllNames()
-        self.vsources = self.dss.Vsources.AllNames()
+        self.loads = self.dss.Loads.AllNames() or []
+        self.lines = self.dss.Lines.AllNames() or []
+        self.transformers = self.dss.Transformers.AllNames() or []
+        self.generators = self.dss.Generators.AllNames() or []
+        self.storages = self.dss.Storages.AllNames() or []
+        self.pvsystems = self.dss.PVsystems.AllNames() or []
+        self.buses = self.dss.Circuit.AllBusNames() or []
+        self.loadshapes = self.dss.LoadShape.AllNames() or []
+        self.vsources = self.dss.Vsources.AllNames() or []
 
     def _initialize_circuit(self, temp_file: str):
         """Initialize the OpenDSS circuit from the given .dss file"""
@@ -110,84 +113,57 @@ class DSSWorker:
             self.dss.run_command(f"Edit PVSystem.{pv} kvar={new_q_kvar:.2f}")
         return freq
 
-    def get_results(
-        self,
-        delta_time: float,
-        curr_datetime: datetime,
-        key_buses: list[str] | None = None,
-        key_storages: list[str] | None = None,
-        key_pvs: list[str] | None = None,
-        freq: float = 50.0,
-    ) -> SimulationResult:
-        """Extract results from the OpenDSS simulation"""
-        if key_buses is None:
-            key_buses = ["101", "108", "610"]
-        if key_pvs is None:
-            key_pvs = ["PVSystem.myPV"]
-        if key_storages is None:
-            key_storages = ["Storage.mystorage"]
+    def _get_dict_data(self, klass: str) -> dict:
+        """Get all data for a given class as a dictionary"""
+        elements = self.__getattribute__(f"{klass}s")
+        results = {}
+        for element in elements:
+            self.dss.Circuit.SetActiveElement(f"{klass}.{element}")
+            results[f"{klass}.{element}"] = {
+                "bus_names": self.dss.CktElement.BusNames(),
+                "powers": self.dss.CktElement.Powers(),
+                "voltages": self.dss.CktElement.Voltages(),
+                "currents": self.dss.CktElement.Currents(),
+            }
+        return results
 
-        converged = self.dss.Solution.Converged()
-        if converged:
-            total_power = tuple_to_powerflow(self.dss.Circuit.TotalPower())
-            losses = tuple_to_powerflow(self.dss.Circuit.Losses())
+    def _get_voltages(self) -> dict:
+        """Get voltages at all buses"""
+        voltages_dict = {}
+        for bus in self.buses:
+            self.dss.Circuit.SetActiveBus(bus)
+            voltages_dict[bus] = self.dss.Bus.Voltages()
 
-            bus_voltages = {}
-            for bus in key_buses:
-                self.dss.Circuit.SetActiveBus(bus)
-                voltages = self.dss.Bus.Voltages()
-                voltage_mag = (
-                    np.sqrt(voltages[0] ** 2 + voltages[1] ** 2)
-                    if len(voltages) >= 2
-                    else 0
-                )
-                bus_voltages[bus] = voltage_mag
+        return voltages_dict
 
-            # Get PV and Storage data
-            pv_powers = {}
-            for pv in key_pvs:
-                self.dss.Circuit.SetActiveElement(pv)
-                pv_power = tuple_to_powerflow(self.dss.CktElement.Powers())
-                pv_powers[pv] = pv_power
+    def dump_results(self, delta_time: float, curr_datetime: datetime, freq: float):
+        """Dump results to a JSON file for the current timestep"""
+        timestamp = curr_datetime.strftime("%Y%m%d_%H%M%S")
+        results = {
+            "timestamp": curr_datetime.isoformat(),
+            "solve_time_ms": delta_time,
+            "converged": True if self.dss.Solution.Converged() else False,
+            "frequency": freq,
+            "losses": self.dss.Circuit.Losses(),
+            "voltages": self._get_voltages(),
+            "lines": self._get_dict_data("line"),
+            "loads": self._get_dict_data("load"),
+            "generators": self._get_dict_data("generator"),
+            "storages": self._get_dict_data("storage"),
+            "pvsystems": self._get_dict_data("pvsystem"),
+            "vsources": self._get_dict_data("vsource"),
+        }
+        output_path = os.path.join(OUTPUT_FOLDER, f"results_{timestamp}.json")
+        with open(output_path, "w") as f:
+            json.dump(results, f, indent=4)
 
-            storage_powers = {}
-            for storage in key_storages:
-                self.dss.Circuit.SetActiveElement(storage)
-                storage_power = tuple_to_powerflow(self.dss.CktElement.Powers())
-                storage_powers[storage] = storage_power
-        else:
-            logger.warning("Power flow did not converge")
-            total_power = PowerFlow()
-            losses = PowerFlow()
-            bus_voltages = {bus: float("nan") for bus in key_buses}
-            pv_powers = {pv: PowerFlow() for pv in key_pvs}
-            storage_powers = {storage: PowerFlow() for storage in key_storages}
-        return SimulationResult(
-            curr_datetime=curr_datetime.isoformat(),
-            converged=True if converged else False,
-            solve_time_ms=delta_time,
-            total_power=total_power,
-            losses=losses,
-            bus_voltages=bus_voltages,
-            pv_powers=pv_powers,
-            storage_powers=storage_powers,
-            frequency=freq,
-        )
-
-    def solve(
-        self,
-        curr_datetime: datetime,
-    ) -> SimulationResult:
+    def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
         delta_time, freq = self._solve()
-        result = self.get_results(delta_time, curr_datetime, freq=freq)
-        return result
+        self.dump_results(delta_time, curr_datetime, freq=freq)
 
 
-def run_daily_powerflow(
-    dss_filename: str = "Run_QSTS.dss",
-    total_runs: int = 24 * 1,
-) -> pd.DataFrame:
+def run_daily_powerflow(dss_filename: str = "Run_QSTS.dss", total_runs: int = 24 * 1):
     """
     Run power flow analysis for each hour of a day using Ray for parallel execution
     """
@@ -213,7 +189,6 @@ def run_daily_powerflow(
     ]
 
     # Dynamic task assignment: assign new run_idx to a worker as soon as it is free
-    results = []
     futures = []
     run_iter = iter(run_indices)
 
@@ -240,8 +215,7 @@ def run_daily_powerflow(
         # Find which worker finished
         for i, (worker, future) in enumerate(futures):
             if future == done_id:
-                result = ray.get(done_id)
-                results.append(result)
+                ray.get(done_id)
                 pbar.update(1)
                 # Assign new task to this worker if any left
                 try:
@@ -253,39 +227,31 @@ def run_daily_powerflow(
                     futures.pop(i)
                 break
     pbar.close()
-
     os.remove(temp_file)
-    return _save_and_summarize_results(results, env_vars, total_runs)
 
 
-def _save_and_summarize_results(
-    results: list[SimulationResult], env_vars: dict[str, str], total_runs: int
-) -> pd.DataFrame:
+def read_results():
+    """Read all JSON result files and return as a list of dictionaries"""
+    results = []
+    for file in os.listdir(OUTPUT_FOLDER):
+        if file.endswith(".json"):
+            with open(os.path.join(OUTPUT_FOLDER, file), "r") as f:
+                data = json.load(f)
+                results.append(data)
+    return _save_and_summarize_results(results)
+
+
+def _save_and_summarize_results(results: list[SimulationResponse]) -> pd.DataFrame:
     """Save results to CSV and print summary statistics"""
     # Convert to DataFrame
     df = pd.DataFrame(
         [r.__dict__ if hasattr(r, "__dict__") else dict(r) for r in results]
     )
-
     # Sort by datetime to ensure proper order
-    df = df.sort_values("curr_datetime").reset_index(drop=True)
-
-    csv_path = os.path.join(
-        env_vars["DSS_EXPORT_FOLDER"], "daily_powerflow_hourly_results.csv"
-    )
-    df.to_csv(csv_path, index=False)
-    logger.info(f"Results saved to: {csv_path}")
-
-    # Check convergence
-    converged_count = df["converged"].sum()
-    logger.info(
-        f"Convergence rate: {converged_count}/{total_runs} ({100*converged_count/total_runs:.1f}%)"
-    )
-
+    df = df.sort_values("timestamp").reset_index(drop=True)
     # Performance summary
     avg_solve_time = df["solve_time_ms"].mean()
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
-
     RayShutdown().get()  # Shutdown Ray
     return df
