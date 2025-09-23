@@ -14,7 +14,14 @@ from app.helpers import setup_circuit
 from app.models import PowerFlow, SimulationResult, tuple_to_powerflow
 
 # from app.profile_reader import load_pv_profile
-from common.konfig import MAX_CPU_COUNT, MAX_ITERATION, SMALL_NUMBER
+from common.konfig import (
+    H_SYSTEM,
+    MAX_CPU_COUNT,
+    MAX_ITERATION,
+    NOMINAL_FREQUENCY,
+    NOMINAL_POWER,
+    SMALL_NUMBER,
+)
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -45,6 +52,7 @@ class DSSWorker:
         self.pvsystems = self.dss.PVsystems.AllNames()
         self.buses = self.dss.Circuit.AllBusNames()
         self.loadshapes = self.dss.LoadShape.AllNames()
+        self.vsources = self.dss.Vsources.AllNames()
 
     def _initialize_circuit(self, temp_file: str):
         """Initialize the OpenDSS circuit from the given .dss file"""
@@ -52,6 +60,8 @@ class DSSWorker:
         self.dss.Command(f'Compile "{temp_file}"')
 
     def _set_load_shape_multipliers(self):
+        """Randomly set load shape multipliers for all load shapes"""
+        # TODO: Replace with actual profile data
         for i in range(len(self.loadshapes)):
             multiplier = random.uniform(0.0, 1.0)
             self.dss.run_command(
@@ -63,11 +73,11 @@ class DSSWorker:
         time_start = time.time()
         self._set_load_shape_multipliers()
         self.dss.run_command("Solve")
-        freq = self._update_freq(50.0)
+        freq = self._update_freq(NOMINAL_FREQUENCY)
         for _ in range(MAX_ITERATION):
             self.dss.run_command("Solve")
             new_freq = self._update_freq(freq)
-            if abs(new_freq - freq) < SMALL_NUMBER:
+            if abs(new_freq - freq) / NOMINAL_FREQUENCY < SMALL_NUMBER:
                 break
             freq = new_freq
         time_end = time.time()
@@ -75,30 +85,28 @@ class DSSWorker:
 
     def _update_freq(self, freq: float):
         """Update the system frequency in the OpenDSS simulation"""
-        self.dss.Circuit.SetActiveElement("Vsource.V1")
-        p_kw = self.dss.CktElement.Powers()[0]  # list: [P1,Q1, P2,Q2, ...]
-        q_kvar = self.dss.CktElement.Powers()[1]
-        Δp = p_kw
-        Δq = q_kvar
-        freq -= Δp * 0.0001
+        Δp = 0.0
+        Δq = 0.0
+        for vsource in self.vsources:
+            self.dss.Circuit.SetActiveElement(f"Vsource.{vsource}")
+            Δp += self.dss.CktElement.Powers()[0]
+            Δq += self.dss.CktElement.Powers()[1]
+
+        freq -= Δp / (2 * H_SYSTEM * NOMINAL_POWER)
+
         self.dss.run_command(f"Edit Vsource.V1 basefreq={freq}")
         for storage in self.storages:
             self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
             power = self.dss.CktElement.Powers()
-            p_kw = power[0]
-            q_kvar = power[1]
-            new_p_kw = p_kw + Δp * 0.1
-            new_q_kvar = q_kvar + Δq * 0.1
+            new_p_kw = power[0] + Δp * 0.1
+            new_q_kvar = power[1] + Δq * 0.1
             self.dss.run_command(
                 f"Edit Storage.{storage} kW={new_p_kw:.2f} kvar={new_q_kvar:.2f}"
             )
         for pv in self.pvsystems:
             self.dss.Circuit.SetActiveElement(f"PVSystem.{pv}")
             power = self.dss.CktElement.Powers()
-            p_kw = power[0]
-            q_kvar = power[1]
-            new_p_kw = p_kw
-            new_q_kvar = q_kvar + Δq * 0.1
+            new_q_kvar = power[1] + Δq * 0.1
             self.dss.run_command(f"Edit PVSystem.{pv} kvar={new_q_kvar:.2f}")
         return freq
 
