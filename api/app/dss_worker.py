@@ -71,7 +71,7 @@ class DSSWorker:
         self.dss.Command("Clear")
         self.dss.Command(f'Compile "{temp_file}"')
 
-    def _change_seed(self, seed_number: int):
+    def _change_seed(self, seed_number: int | None):
         """Change the random seed for reproducibility"""
         random.seed(seed_number)
         np.random.seed(seed_number)
@@ -113,20 +113,20 @@ class DSSWorker:
     ):
         return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} %stored=100 %reserve=20 '
 
-    def _set_load_shape_multipliers(self, t: int):
+    def _set_load_shape_multipliers(self):
         """Randomly set load shape multipliers for all load shapes"""
         # TODO: Replace with actual profile data
         for i in range(len(self.loadshapes)):
-            self._change_seed(i + int(time.time()) + t * 1000)
+            self._change_seed(None)
             multiplier = random.uniform(0.0, 1.0)
             self.dss.run_command(
                 f"Edit LoadShape.{self.loadshapes[i]} npts=1 mult=[{multiplier}]"
             )
 
-    def _solve(self, t: int = 0):
+    def _solve(self):
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
-        self._set_load_shape_multipliers(t=t)
+        self._set_load_shape_multipliers()
         self.dss.run_command("Solve")
         freq = self._update_freq(NOMINAL_FREQUENCY)
         for _ in range(MAX_ITERATION):
@@ -211,7 +211,7 @@ class DSSWorker:
 
     def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
-        delta_time, freq = self._solve(t=int(curr_datetime.hour))
+        delta_time, freq = self._solve()
         self.dump_results(delta_time, curr_datetime, freq=freq)
 
 
