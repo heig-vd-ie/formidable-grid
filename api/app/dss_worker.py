@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import os
+import random
 import time
 
 from main import RayInit, RayShutdown
@@ -23,25 +24,46 @@ class DSSWorker:
     def __init__(self, basedir: str, temp_file: str, env_vars: dict):
         from opendssdirect import dss
 
+        random.seed(42)
+        np.random.seed(42)
+
         self.basedir = basedir
         self.temp_file = temp_file
+        self.dss = dss
+        self.__init_dir(env_vars)
+        self._initialize_circuit(temp_file)
+        self.__init_components()
 
+    def __init_dir(self, env_vars: dict):
         for key, value in env_vars.items():
             os.environ[key] = value
         os.chdir(self.basedir)
 
-        self.dss = dss
-        self._initialize_circuit(temp_file)
+    def __init_components(self):
+        """Initialize component lists from the OpenDSS circuit"""
+        self.loads = self.dss.Loads.AllNames()
+        self.generators = self.dss.Generators.AllNames()
+        self.storages = self.dss.Storages.AllNames()
+        self.pvsystems = self.dss.PVsystems.AllNames()
+        self.buses = self.dss.Circuit.AllBusNames()
+        self.loadshapes = self.dss.LoadShape.AllNames()
 
     def _initialize_circuit(self, temp_file: str):
         """Initialize the OpenDSS circuit from the given .dss file"""
         self.dss.Command("Clear")
         self.dss.Command(f'Compile "{temp_file}"')
 
-    def _solve(self, pv_multiplier: float):
+    def _set_load_shape_multipliers(self):
+        for i in range(len(self.loadshapes)):
+            multiplier = random.uniform(0.0, 1.0)
+            self.dss.run_command(
+                f"Edit LoadShape.{self.loadshapes[i]} npts=1 mult=[{multiplier}]"
+            )
+
+    def _solve(self):
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
-        self.dss.run_command(f"Edit LoadShape.pvshape npts=1 mult=[{pv_multiplier}]")
+        self._set_load_shape_multipliers()
         self.dss.run_command("Solve")
         time_end = time.time()
         return time_end - time_start
@@ -114,7 +136,7 @@ class DSSWorker:
         pv_multiplier: float,
     ) -> SimulationResult:
         """Run power flow and extract results"""
-        delta_time = self._solve(pv_multiplier)
+        delta_time = self._solve()
         result = self.get_results(delta_time, curr_datetime)
         return result
 
