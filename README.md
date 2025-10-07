@@ -12,6 +12,6 @@ Author: Mohammad Rayati
 
 Use docker for installing project of [GridLab-D](https://github.com/gridlab-d/gridlab-d):
 ```sh
-make start
+make start-dev
 ```
 

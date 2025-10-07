@@ -1,7 +1,7 @@
 #!/bin/bash
 
 SESSION_NAME=${1:-"formidable-dev"}
-PROJECT_DIR="/home/myi/projects/formidable-grid"
+PROJECT_DIR=$(pwd)
 
 tmux kill-session -t "$SESSION_NAME" 2>/dev/null
 
