@@ -111,14 +111,10 @@ uninstall-venv: ## Uninstall the virtual environment
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
 	@if [ -n "$(file)" ]; then \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
+		PYTHONWARNINGS=ignore docker exec -it fg-ray-head python -m pytest src/tests "$(file)" -v; \
 	else \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest **/tests -v;\
+		PYTHONWARNINGS=ignore docker exec -it fg-ray-head python -m pytest src/tests -v;\
 	fi
-
-format-julia:  ## Format Julia code in the src directory
-	@echo "Formatting Julia code with JuliaFormatter..."
-	julia -e 'using JuliaFormatter; format("src/")'
 
 format-py: ## Format Python code using black
 	@echo "Formatting Python code with black..."

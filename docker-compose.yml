@@ -2,8 +2,9 @@ services:
   fg-gridlabd:
     build:
       context: .
-      dockerfile: api/Dockerfile.gridlabd
+      dockerfile: Dockerfile.gridlabd
     container_name: fg-gridlabd
+    network_mode: host
     environment:
       - INPUTS_FOLDER=${INPUTS_FOLDER}
       - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
@@ -16,7 +17,7 @@ services:
   fg-py-api:
     build:
       context: .
-      dockerfile: api/Dockerfile.py
+      dockerfile: Dockerfile.py
       ssh:
         - default
     container_name: fg-py-api
@@ -24,6 +25,9 @@ services:
     environment:
       - SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT}
       - SERVER_PY_PORT=${SERVER_PY_PORT}
+      - INTERNAL_DSSFILES_FOLDER=${INTERNAL_DSSFILES_FOLDER}
+      - EXTERNAL_DSSFILES_FOLDER=${EXTERNAL_DSSFILES_FOLDER}
+      - DSS_EXPORT_FOLDER=${DSS_EXPORT_FOLDER}
     ports:
       - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
     volumes:
@@ -47,7 +51,7 @@ services:
   fg-ray-head:
     build:
       context: .
-      dockerfile: api/Dockerfile.ray
+      dockerfile: Dockerfile.ray
       ssh:
         - default
     container_name: fg-ray-head
@@ -66,6 +70,9 @@ services:
       - RAY_GRAFANA_ORG_ID=1
       - RAY_PROMETHEUS_HOST=http://${LOCAL_HOST}:${PROMETHEUS_PORT}
       - RAY_PROMETHEUS_NAME=Prometheus
+      - INTERNAL_DSSFILES_FOLDER=${INTERNAL_DSSFILES_FOLDER}
+      - EXTERNAL_DSSFILES_FOLDER=${EXTERNAL_DSSFILES_FOLDER}
+      - DSS_EXPORT_FOLDER=${DSS_EXPORT_FOLDER}
     ports:
       - "${SERVER_RAY_PORT}:${SERVER_RAY_PORT}"
       - "${SERVER_RAY_DASHBOARD_PORT}:${SERVER_RAY_DASHBOARD_PORT}"
@@ -82,8 +89,8 @@ services:
       - fg-grafana
   fg-frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.frontend
       ssh:
         - default
     container_name: fg-frontend

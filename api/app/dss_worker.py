@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
+from tempfile import tempdir
 import time
 
 import numpy as np
@@ -22,12 +23,21 @@ from common.konfig import (
     SMALL_NUMBER,
 )
 from common.setup_log import setup_logger
+from pathlib import Path
 
 logger = setup_logger(__name__)
 
+SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
+
 
 def ray_init():
-    return ray.init()
+    logger.info(f"Initializing Ray with address: {SERVER_RAY_ADDRESS}")
+    return ray.init(
+        address=SERVER_RAY_ADDRESS,
+        runtime_env={
+            "working_dir": os.path.dirname(os.path.abspath(__file__)),
+        },
+    )
 
 
 def ray_shutdown():
