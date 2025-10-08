@@ -1,4 +1,4 @@
-Compile ($EXTERNAL_DSSFILES_FOLDER/European_LV_Test_Feeder-G/Master.dss)
+Compile ($EXTERNAL_DSSFILES_FOLDER/IEEE_123_Bus-G/Master.dss)
 
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewSwitches.dss
 Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewMonitors.dss

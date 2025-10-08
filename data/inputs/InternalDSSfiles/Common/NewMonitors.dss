@@ -1,2 +1,4 @@
-New "Monitor.line001_vi_vs_time" element=line.LINE1   terminal=1 mode=+32
-New "Monitor.line001_va_vs_time" element=line.LINE1   terminal=1 mode=0
+New "Monitor.sw6_1_vi_vs_time" element=line.sw6   terminal=1 mode=+32
+New "Monitor.sw6_1_va_vs_time" element=line.sw6   terminal=1 mode=0
+New "Monitor.sw6_2_vi_vs_time" element=line.sw6   terminal=2 mode=+32
+New "Monitor.sw6_2_va_vs_time" element=line.sw6   terminal=2 mode=0
