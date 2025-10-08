@@ -180,3 +180,10 @@ data/outputs
 data/uploads
 
 opendss/Exports/*
+
+
+ray
+
+data/queries.active
+spill
+
