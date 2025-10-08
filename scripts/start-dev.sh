@@ -10,12 +10,11 @@ tmux new-session -d -s "$SESSION_NAME" -c "$PROJECT_DIR"
 # Split window into 3 horizontal panes
 tmux split-window -h -t "$SESSION_NAME:0"
 tmux split-window -h -t "$SESSION_NAME:0.1"
-tmux split-window -h -t "$SESSION_NAME:0.2"
 
 tmux select-layout -t "$SESSION_NAME:0" even-vertical
 
 # Pane 0: 
-tmux send-keys -t "$SESSION_NAME:0.0" "source .envrc && make start && docker exec -it gridlabd sh" C-m
+tmux send-keys -t "$SESSION_NAME:0.0" "source .envrc && make build _start logs" C-m
 
 # Pane 1:
 tmux send-keys -t "$SESSION_NAME:0.1" "source .envrc && cd frontend && npm run dev" C-m
@@ -23,11 +22,19 @@ tmux send-keys -t "$SESSION_NAME:0.1" "source .envrc && cd frontend && npm run d
 # Pane 2:
 tmux send-keys -t "$SESSION_NAME:0.2" "source .envrc &&cd frontend && npm run api" C-m
 
-# Pane 3:
-# tmux send-keys -t "" C-m
-
 # Focus on the which pane
-tmux select-pane -t "$SESSION_NAME:0.3"
+tmux select-pane -t "$SESSION_NAME:0.1"
+
+# Set titles
+titles=(
+  "Servers"
+  "Dev Frontend"
+  "Dev Backend"
+)
+
+for i in "${!titles[@]}"; do
+    tmux select-pane -t $SESSION:0.$i -T "${titles[$i]}"
+done
 
 # Attach to the session
 tmux attach-session -t "$SESSION_NAME"

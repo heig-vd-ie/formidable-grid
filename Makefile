@@ -9,14 +9,10 @@ fetch-images: ## Fetch the Docker images
 build: ## Build the Docker images
 	docker compose -f $(COMPOSE_FILE) build
 
-start: ## Start the Docker containers
+_start: ## Start the Docker containers
 	docker compose -f $(COMPOSE_FILE) up -d $(CONTAINERS)
 
-build-start: ## Build and start the Docker containers
-	@$(MAKE) build
-	@$(MAKE) start
-
-start-dev: ## Start Native service frontend (the docker should be first stopped)
+start: ## Start Native service frontend (the docker should be first stopped)
 	@./scripts/start-dev.sh
 
 stop: ## Stop the Docker containers
