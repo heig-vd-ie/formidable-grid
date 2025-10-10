@@ -19,16 +19,14 @@ class HEIGVDCHMeteoDB:
         return f"""
         SELECT 
         di.`Date and Time` as `Datetime`,
-        `Labo Reine.SolarMax.Power AC [W]` as `PV1`, 
-        `Labo Reine.ABB.Power AC [W]` as `PV2`,
-        `Labo Reine.Kaco.Power AC [W]` as `PV3` 
+        `Labo Reine.ABB.Power AC [W]` as `PV`
         FROM db_iese_{year} di 
         ORDER BY `Date and Time` DESC
         """
 
     def extract_pv_profiles(self, filename: str):
         dfs = []
-        for year in range(2020, 2025):
+        for year in range(2020, 2026):
             query_pvs = self._pv_profile_query(year)
             dfs.append(self._query(query_pvs))
             logger.info(f"Extracted PV data for year {year}")
