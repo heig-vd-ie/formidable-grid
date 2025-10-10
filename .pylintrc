@@ -13,6 +13,9 @@ disable=
     C0116,  # missing-function-docstring
     R0903,  # too-few-public-methods
     R0902,  # too-many-instance-attributes
+    C0411,  # wrong-import-order
+    C0412,  # ungrouped-imports
+    C0413,  # wrong-import-position
 
 [REPORTS]
 reports=no
