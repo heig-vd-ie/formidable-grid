@@ -242,7 +242,7 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
-    # pv_multipliers = load_pv_profile()
+    # pv_multipliers = ProfileReader()
 
     run_indices = list(range(total_runs))
 
