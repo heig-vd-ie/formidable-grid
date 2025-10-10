@@ -22,7 +22,6 @@ from common.konfig import (
     SMALL_NUMBER,
 )
 from common.setup_log import setup_logger
-from pathlib import Path
 
 logger = setup_logger(__name__)
 
