@@ -2,7 +2,6 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
-from tempfile import tempdir
 import time
 
 import numpy as np
