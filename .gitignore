@@ -187,3 +187,4 @@ ray
 data/queries.active
 spill
 
+.secrets.toml
