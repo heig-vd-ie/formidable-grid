@@ -17,7 +17,7 @@ services:
   fg-py-api:
     build:
       context: .
-      dockerfile: Dockerfile.py
+      dockerfile: Dockerfile.python
       ssh:
         - default
     container_name: fg-py-api
