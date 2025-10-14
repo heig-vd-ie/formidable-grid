@@ -59,8 +59,8 @@ services:
       - fg-grafana
   fg-grafana:
     build:
-      context: ./grafana
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: Dockerfile.grafana
     container_name: fg-grafana
     network_mode: host
     environment:
