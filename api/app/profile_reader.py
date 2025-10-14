@@ -1,13 +1,11 @@
-from datetime import datetime
-import os
 from pathlib import Path
-import numpy as np
 import pandas as pd
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 
 HEAD_NUMBER = int(1e3)
+MONTHTIME_FORMAT = "%m-%d %H:%M:%S"
 
 
 class ProfileReader:
@@ -60,18 +58,18 @@ class ProfileReader:
 
         _pv = df[["Datetime", "κp"]].copy()
         _pv["year"] = _pv["Datetime"].dt.year
-        _pv["Datetime"] = df["Datetime"].dt.strftime("%m-%d %H:%M:%S")
+        _pv["Datetime"] = "2025-" + df["Datetime"].dt.strftime(MONTHTIME_FORMAT)
         _pv_pivot = _pv.pivot(index="Datetime", columns="year", values="κp")
         _pv_pivot.columns = [f"κp.{year}" for year in _pv_pivot.columns]
 
-        self._pv_pivot = _pv_pivot
-        logger.info(f"Loaded PV profile data with shape: {self._pv_pivot.shape}")
+        self.pv = _pv_pivot
+        logger.info(f"Loaded PV profile data with shape: {self.pv.shape}")
 
         if to_plot:
             self._plot_profile(
-                df=_pv_pivot,
+                df=self.pv,
                 x="Datetime",
-                ys=_pv_pivot.columns.tolist(),
+                ys=self.pv.columns.tolist(),
                 title="PV Profile Multipliers",
                 y_label="Multiplier",
                 output_filename="pv_profile_multipliers.html",
@@ -91,7 +89,7 @@ class ProfileReader:
         _df = _df.groupby("Datetime").mean().reset_index()
 
         _df["year"] = _df["Datetime"].dt.year
-        _df["Datetime"] = _df["Datetime"].dt.strftime("%m-%d %H:%M:%S")
+        _df["Datetime"] = "2025-" + _df["Datetime"].dt.strftime(MONTHTIME_FORMAT)
 
         dfs = []
         for g in groups:
@@ -115,7 +113,7 @@ class ProfileReader:
 
         df = pd.concat(dfs, axis=1)
         df = df.reset_index()
-        self._load = df[
+        self.load = df[
             ["Datetime"]
             + [
                 f"κ{t.lower()}{p.lower()}.{g[0].lower()}{year}"
@@ -128,7 +126,7 @@ class ProfileReader:
 
         if to_plot:
             self._plot_profile(
-                df=df,
+                df=self.load,
                 x="Datetime",
                 ys=[
                     f"κ{t.lower()}{p.lower()}.{g[0].lower()}{year}"
@@ -142,42 +140,14 @@ class ProfileReader:
                 output_filename="load_profile_multipliers.html",
             )
 
-    # df["curr_datetime"] = pd.to_datetime(df["curr_datetime"], format="%m/%d/%Y  %H:%M")
-    # df = df.sort_values("curr_datetime")
-
-    # # Create a full datetime index for every minute in the year (non-leap year)
-    # start = datetime(
-    #     df["curr_datetime"].dt.year.min(),
-    #     df["curr_datetime"].dt.month.min(),
-    #     df["curr_datetime"].dt.day.min(),
-    # )
-    # end = datetime(df["curr_datetime"].dt.year.min(), 12, 31, 23, 59)
-    # full_index = pd.date_range(start, end, freq="min")
-
-    # # Reindex and interpolate
-    # df_interp = df.set_index("curr_datetime").reindex(full_index)
-    # df_interp["multiplier"] = (
-    #     df_interp["multiplier"].interpolate(method="time").fillna(0)
-    # )
-
-    # overall_avg = df["multiplier"].mean()
-    # df_interp["multiplier"] = df_interp["multiplier"].fillna(overall_avg)
-
-    # # Set the first element to the average value for its day
-    # first_day = full_index[0].date()
-    # first_day_mask = [dt.date() == first_day for dt in df["curr_datetime"]]
-    # first_day_avg = df.loc[first_day_mask, "multiplier"].mean()
-    # if not np.isnan(first_day_avg):
-    #     df_interp.loc[df_interp.index[0], "multiplier"] = first_day_avg
-    # else:
-    #     df_interp.loc[df_interp.index[0], "multiplier"] = overall_avg
-
-    # # Create the numpy array
-    # multiplier_array = df_interp["multiplier"].to_numpy().flatten()
-    # return multiplier_array
+    def _handle_missing_values(self):
+        """Handle missing values in the profiles"""
+        print(self.pv.shape)
+        print(self.load.shape)
 
 
 if __name__ == "__main__":
     profile_reader = ProfileReader()
     profile_reader._pv_profile(to_plot=True)
     profile_reader._load_profile(to_plot=True)
+    profile_reader._handle_missing_values()
