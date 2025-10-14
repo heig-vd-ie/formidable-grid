@@ -21,7 +21,9 @@ from common.konfig import (
     OUTPUT_FOLDER,
     SMALL_NUMBER,
 )
+from config import settings
 from common.setup_log import setup_logger
+from pathlib import Path
 
 logger = setup_logger(__name__)
 
@@ -33,7 +35,7 @@ def ray_init():
     return ray.init(
         address=SERVER_RAY_ADDRESS,
         runtime_env={
-            "working_dir": os.path.dirname(os.path.abspath(__file__)),
+            "working_dir": str(Path(__file__).parent.parent.resolve()),
         },
     )
 

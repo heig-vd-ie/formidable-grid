@@ -35,6 +35,6 @@ kill-port: ## Kill any process running on the specified port
 
 fix-permission: ## Fix permissions for the cache directories
 	@echo "Fixing permissions for uploads and inputs directories"
-	@sudo mkdir -p $(UPLOADS_FOLDER_NATIVE) $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
-	@sudo chown -R $$(whoami):$(whoami) $(UPLOADS_FOLDER_NATIVE) $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
-	@sudo chmod -R 755 $(UPLOADS_FOLDER_NATIVE) $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
+	@sudo mkdir -p $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
+	@sudo chown -R $$(whoami):$(whoami) $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
+	@sudo chmod -R 755 $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
