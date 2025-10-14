@@ -1,0 +1,8 @@
+[PROFILE_DATA]
+pv_profile_file = "pv_profiles.parquet"
+load_profile_file = "load_profiles.parquet"
+processed_pv_profile_file = "processed_pv_profiles.parquet"
+processed_real_load_profile_file = "processed_real_load_profiles.parquet"
+processed_reactive_load_profile_file = "processed_reactive_load_profiles.parquet"
+folder_path = "data/inputs"
+output_folder_path = "data/outputs"

@@ -4,6 +4,7 @@ from ray._private.worker import BaseContext
 
 from app.dss_worker import ray_init, ray_shutdown, read_results, run_daily_powerflow
 from app.plotter import create_qsts_plots
+from app import _recreate_profile_data
 
 app = FastAPI()
 
@@ -30,6 +31,12 @@ def ray_shutdown_ep():
     else:
         return_result = {"status": "Ray was not initialized"}
     return return_result
+
+
+@app.patch("/recreate-profile-data")
+def recreate_profile_data():
+    _recreate_profile_data()
+    return {"status": "Profile data recreated successfully"}
 
 
 @app.get("/run-daily-example")

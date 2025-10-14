@@ -1,19 +1,24 @@
 import pandas as pd
 import sqlalchemy
 from common.setup_log import setup_logger
+from pathlib import Path
+from config import settings
 
 logger = setup_logger(__name__)
 
 
 class HEIGVDCHMeteoDB:
+
     def __init__(self, engine: sqlalchemy.engine.base.Engine):
         self.engine = engine
+        self.CURRENT_DIR = Path(__file__).parent.parent.parent
 
     def _query(self, query: str) -> pd.DataFrame:
         return pd.read_sql(query, self.engine)
 
     def _record_into_parquet(self, df: pd.DataFrame, filename: str):
-        df.to_parquet(filename, index=False)
+
+        df.to_parquet(self.CURRENT_DIR / filename, index=False)
 
     def _pv_profile_query(self, year: int) -> str:
         return f"""
@@ -24,7 +29,12 @@ class HEIGVDCHMeteoDB:
         ORDER BY `Date and Time` DESC
         """
 
-    def extract_pv_profiles(self, filename: str):
+    def extract_pv_profiles(
+        self,
+        filename: str = settings.profile_data.folder_path
+        + "/"
+        + settings.profile_data.pv_profile_file,
+    ):
         dfs = []
         for year in range(2020, 2026):
             query_pvs = self._pv_profile_query(year)
@@ -79,7 +89,12 @@ class HEIGVDCHMeteoDB:
         ORDER BY `Date et Heure` DESC
         """
 
-    def extract_load_profiles(self, filename: str):
+    def extract_load_profiles(
+        self,
+        filename: str = settings.profile_data.folder_path
+        + "/"
+        + settings.profile_data.load_profile_file,
+    ):
         query_load = self._load_profile_query()
         df = self._query(query_load).sort_values(by="Datetime").reset_index(drop=True)
         logger.info(f"Extracted load profile data")
@@ -88,8 +103,7 @@ class HEIGVDCHMeteoDB:
 
 
 if __name__ == "__main__":
-    from config import settings
 
     ENGINE = sqlalchemy.create_engine(settings.power_profile_school_sql_url)
-    HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles("data/inputs/pv_profiles.parquet")
-    HEIGVDCHMeteoDB(ENGINE).extract_load_profiles("data/inputs/load_profiles.parquet")
+    HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles()
+    HEIGVDCHMeteoDB(ENGINE).extract_load_profiles()
