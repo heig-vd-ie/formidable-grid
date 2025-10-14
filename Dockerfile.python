@@ -38,5 +38,7 @@ COPY data/ /app/data/
 
 EXPOSE ${SERVER_PY_PORT}
 
-# 10. Run Python API with uvicorn
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $SERVER_PY_PORT"]
+# Copy and make the Ray start script executable
+COPY scripts/start-ray-head.sh /app/start-ray-head.sh
+RUN chmod +x /app/start-ray-head.sh
+CMD ["sh", "/app/start-ray-head.sh", "&&", "sh", "-c", "uvicorn main:app --host 0.0.0.0 --port $SERVER_PY_PORT"]
