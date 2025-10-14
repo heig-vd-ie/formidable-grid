@@ -25,7 +25,6 @@ ray start --head \
     --dashboard-port=${SERVER_RAY_DASHBOARD_PORT} \
     --metrics-export-port=${SERVER_RAY_METRICS_EXPORT_PORT} \
     --disable-usage-stats \
-    --object-spilling-directory=/tmp/spill \
-    --block
+    --object-spilling-directory=/tmp/spill
 
 echo "Ray head started successfully!"
