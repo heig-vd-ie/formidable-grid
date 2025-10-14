@@ -55,10 +55,12 @@ class ProfileReader:
 
     def _pv_profile(
         self,
-        file_name: str = settings.profile_data.pv_profile_file,
+        file_name: str | None = None,
         to_plot: bool = False,
     ):
         """Load and process the PV profile data"""
+        if file_name is None:
+            file_name = settings.profile_data.pv_profile_file
         df = pd.read_parquet(self.INPUT_DATA_DIR / file_name)
         df["κp"] = df["PV"] / df["PV"].max()
 
@@ -89,10 +91,12 @@ class ProfileReader:
 
     def _load_profile(
         self,
-        file_name: str = settings.profile_data.load_profile_file,
+        file_name: str | None = None,
         to_plot: bool = False,
     ):
         """Load and process the load profile data"""
+        if file_name is None:
+            file_name = settings.profile_data.load_profile_file
         _df = pd.read_parquet(self.INPUT_DATA_DIR / file_name)
         groups = ["Blue", "Red"]
         phases = ["1", "2", "3"]
@@ -218,6 +222,19 @@ class ProfileReader:
         self._load_profile()
         self._handle_missing_values()
         self._record_profiles()
+        return self
+
+    def get_profiles(self):
+        self.pv = pd.read_parquet(
+            self.INPUT_DATA_DIR / settings.profile_data.processed_pv_profile_file
+        )
+        self.load_p = pd.read_parquet(
+            self.INPUT_DATA_DIR / settings.profile_data.processed_real_load_profile_file
+        )
+        self.load_q = pd.read_parquet(
+            self.INPUT_DATA_DIR
+            / settings.profile_data.processed_reactive_load_profile_file
+        )
         return self
 
 

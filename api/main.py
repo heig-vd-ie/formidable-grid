@@ -1,10 +1,12 @@
-from fastapi import FastAPI
+import datetime
+from fastapi import FastAPI, Depends
 import ray
 from ray._private.worker import BaseContext
-
+from datetime import datetime
 from app.dss_worker import ray_init, ray_shutdown, read_results, run_daily_powerflow
 from app.plotter import create_qsts_plots
 from app import _recreate_profile_data
+from common.models import RunDailyExampleRequest
 
 app = FastAPI()
 
@@ -41,19 +43,23 @@ def recreate_profile_data():
 
 @app.get("/run-daily-example")
 def run_daily_example(
-    total_runs: int = 1,
-    number_of_pvs: int = 5,
-    pv_capacity_kva_mean: float = 10.0,
-    storage_capacity_kw_mean: float = 20.0,
-    grid_forming_percent: float = 0.5,
+    from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
+    to_datetime: datetime = datetime(2025, 1, 2, 0, 0, 0),
+    config: RunDailyExampleRequest = Depends(RunDailyExampleRequest),
 ):
+    if isinstance(from_datetime, str):
+        from_datetime = datetime.fromisoformat(from_datetime)
+    if isinstance(to_datetime, str):
+        to_datetime = datetime.fromisoformat(to_datetime)
 
     run_daily_powerflow(
-        total_runs=total_runs,
-        number_of_pvs=number_of_pvs,
-        pv_capacity_kva_mean=pv_capacity_kva_mean,
-        storage_capacity_kw_mean=storage_capacity_kw_mean,
-        grid_forming_percent=grid_forming_percent,
+        from_datetime=from_datetime,
+        to_datetime=to_datetime,
+        number_of_pvs=config.number_of_pvs,
+        pv_capacity_kva_mean=config.pv_capacity_kva_mean,
+        storage_capacity_kw_mean=config.storage_capacity_kw_mean,
+        grid_forming_percent=config.grid_forming_percent,
+        seed_number=config.seed_number,
     )
     df = read_results()
     create_qsts_plots(df)

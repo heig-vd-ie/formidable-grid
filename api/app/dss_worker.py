@@ -10,6 +10,7 @@ import psutil
 import ray
 from tqdm import tqdm
 
+from extract_data.profile_reader import ProfileReader
 from app.helpers import setup_circuit
 from app.models import SimulationResponse
 from common.konfig import (
@@ -21,7 +22,6 @@ from common.konfig import (
     OUTPUT_FOLDER,
     SMALL_NUMBER,
 )
-from config import settings
 from common.setup_log import setup_logger
 from pathlib import Path
 
@@ -46,12 +46,20 @@ def ray_shutdown():
 
 @ray.remote
 class DSSWorker:
-    def __init__(self, basedir: str, temp_file: str, env_vars: dict, **kwargs):
+    def __init__(
+        self,
+        basedir: str,
+        temp_file: str,
+        env_vars: dict,
+        profiles: dict,
+        **kwargs,
+    ):
         from opendssdirect import dss
 
         self.basedir = basedir
         self.temp_file = temp_file
         self.dss = dss
+        self.profiles = profiles
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         self.__init_dir(env_vars)
         self._initialize_circuit(temp_file)
@@ -226,7 +234,10 @@ class DSSWorker:
 
 
 def run_daily_powerflow(
-    dss_filename: str = "Run_QSTS.dss", total_runs: int = 24 * 1, **kwargs
+    dss_filename: str = "Run_QSTS.dss",
+    from_datetime: datetime = datetime(2025, 1, 1),
+    to_datetime: datetime = datetime(2025, 1, 2),
+    **kwargs,
 ):
     """
     Run power flow analysis for each hour of a day using Ray for parallel execution
@@ -234,7 +245,11 @@ def run_daily_powerflow(
     cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
     logger.info(f"System has {cpu_count} CPU cores available")
 
-    ray_init()
+    if not ray.is_initialized():
+        ray_init()
+        logger.info("Ray was not initialized, initializing now...")
+    else:
+        logger.info("Ray is already initialized")
 
     basedir = os.getcwd()
     env_vars = {
@@ -244,12 +259,13 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
-    # pv_multipliers = ProfileReader()
+    profiles = ProfileReader().get_profiles()
 
+    total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
     run_indices = list(range(total_runs))
 
     workers = [
-        DSSWorker.remote(basedir, temp_file, env_vars, **kwargs)
+        DSSWorker.remote(basedir, temp_file, env_vars, profiles, **kwargs)
         for _ in range(cpu_count - 1)
     ]
 
@@ -265,7 +281,7 @@ def run_daily_powerflow(
                 (
                     worker,
                     worker.solve.remote(
-                        datetime(2024, 1, 1) + timedelta(hours=run_idx),
+                        from_datetime + timedelta(minutes=run_idx * 15),
                     ),
                 )
             )
@@ -285,7 +301,9 @@ def run_daily_powerflow(
                 # Assign new task to this worker if any left
                 try:
                     run_idx = next(run_iter)
-                    new_future = worker.solve.remote(run_idx)
+                    new_future = worker.solve.remote(
+                        from_datetime + timedelta(minutes=run_idx * 15)
+                    )
                     futures[i] = (worker, new_future)
                 except StopIteration:
                     # No more tasks, remove this worker from the list
