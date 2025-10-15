@@ -33,12 +33,9 @@ RUN --mount=type=ssh ssh -T git@github.com || echo "SSH connection failed"
 RUN --mount=type=ssh \
     poetry install --no-root --extras "internal"
 
-COPY api/ /app/src/
-COPY data/ /app/data/
-
 EXPOSE ${SERVER_PY_PORT}
 
 # Copy and make the Ray start script executable
 COPY scripts/start-ray-head.sh /app/start-ray-head.sh
 RUN chmod +x /app/start-ray-head.sh
-CMD sh -c "/app/start-ray-head.sh && uvicorn main:app --host 0.0.0.0 --port $SERVER_PY_PORT"
+CMD sh -c "/app/start-ray-head.sh && uvicorn main:app --host 0.0.0.0 --reload --port $SERVER_PY_PORT"

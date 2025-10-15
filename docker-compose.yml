@@ -52,6 +52,7 @@ services:
       - ./ray:/tmp/ray
       - ./.cache:/app/.cache:rw
       - ./data:/app/data:rw
+      - ./api:/app/src:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -82,6 +83,7 @@ services:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     volumes:
       - ./.cache:/app/.cache:rw
+      - ./frontend:/app:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
