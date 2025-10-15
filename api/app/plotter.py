@@ -44,7 +44,28 @@ def extract_voltages(df: pd.DataFrame, bus_name: str) -> pd.DataFrame:
 
 
 def extract_powers(
-    df: pd.DataFrame, element_type: str, element_name: str
+    df: pd.DataFrame, element_type: str, element_name: str | None = None
+) -> pd.DataFrame:
+    """Extract real and reactive powers for a specific element from the results DataFrame"""
+    if element_name is None:
+        element_names = []
+        for c in df[element_type].values.tolist():
+            if isinstance(c, dict):
+                element_names.extend(list(c.keys()))
+        element_names = list(set(element_names))  # Unique names
+    else:
+        element_names = [element_name]
+    all_powers = []
+    for name in element_names:
+        temp_df = _extract_powers(df, element_type, name)
+        all_powers.append(temp_df)
+    powers = pd.concat(all_powers, ignore_index=True).groupby(["timestamp"]).sum()
+    powers = powers.reset_index()
+    return powers
+
+
+def _extract_powers(
+    df: pd.DataFrame, element_type: str, element_name: str | None = None
 ) -> pd.DataFrame:
     """Extract real and reactive powers for a specific element from the results DataFrame"""
     powers = df
@@ -463,8 +484,8 @@ def create_qsts_plots(df: pd.DataFrame):
     # 1. System Total Power
 
     voltages = extract_voltages(df, "1")
-    storages = extract_powers(df, "storages", "mystorage1")
-    pvs = extract_powers(df, "pvsystems", "myPV")
+    storages = extract_powers(df, "storages")
+    pvs = extract_powers(df, "pvsystems")
 
     df["losses_kw"] = df["losses"].apply(lambda x: x[0])
     df["losses_reactive_kVAr"] = df["losses"].apply(lambda x: x[1])

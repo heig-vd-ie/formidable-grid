@@ -151,9 +151,9 @@ class DSSWorker:
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Randomly set load shape multipliers for all load shapes"""
-        pv = self.profiles.pv[self.profiles.pv.index == curr_datetime]
-        load_p = self.profiles.load_p[self.profiles.load_p.index == curr_datetime]
-        load_q = self.profiles.load_q[self.profiles.load_q.index == curr_datetime]
+        pv = abs(self.profiles.pv[self.profiles.pv.index == curr_datetime])
+        load_p = abs(self.profiles.load_p[self.profiles.load_p.index == curr_datetime])
+        load_q = abs(self.profiles.load_q[self.profiles.load_q.index == curr_datetime])
         if pv.empty or load_p.empty or load_q.empty:
             logger.warning(f"No profile data found for {curr_datetime}")
             return
