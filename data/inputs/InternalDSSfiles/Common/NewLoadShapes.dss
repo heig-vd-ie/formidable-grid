@@ -4,110 +4,110 @@ New "LoadShape.pvshape3" npts=1 interval=1 mult=[1.0]
 New "LoadShape.pvshape4" npts=1 interval=1 mult=[1.0]
 New "LoadShape.pvshape5" npts=1 interval=1 mult=[1.0]
 
-New "LoadShape.1" npts=1 interval=1 mult=[1.0]
-New "LoadShape.2" npts=1 interval=1 mult=[1.0]
-New "LoadShape.3" npts=1 interval=1 mult=[1.0]
-New "LoadShape.4" npts=1 interval=1 mult=[1.0]
-New "LoadShape.5" npts=1 interval=1 mult=[1.0]
-New "LoadShape.6" npts=1 interval=1 mult=[1.0]
-New "LoadShape.7" npts=1 interval=1 mult=[1.0]
-New "LoadShape.8" npts=1 interval=1 mult=[1.0]
-New "LoadShape.9" npts=1 interval=1 mult=[1.0]
-New "LoadShape.10" npts=1 interval=1 mult=[1.0]
-New "LoadShape.11" npts=1 interval=1 mult=[1.0]
-New "LoadShape.12" npts=1 interval=1 mult=[1.0]
-New "LoadShape.13" npts=1 interval=1 mult=[1.0]
-New "LoadShape.14" npts=1 interval=1 mult=[1.0]
-New "LoadShape.15" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape1" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape2" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape3" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape4" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape5" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape6" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape7" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape8" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape9" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape10" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape11" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape12" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape13" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape14" npts=1 interval=1 mult=[1.0]
+New "LoadShape.loadshape15" npts=1 interval=1 mult=[1.0]
 
-Edit "Load.s1a"   Daily=1
-Edit "Load.s7a"   Daily=1
-Edit "Load.s52a"  Daily=1
-Edit "Load.s53a"  Daily=1
-Edit "Load.s60a"  Daily=1
-Edit "Load.s109a" Daily=1
-Edit "Load.s112a" Daily=2
-Edit "Load.s113a" Daily=2
-Edit "Load.s114a" Daily=2
-Edit "Load.s111a" Daily=2
-Edit "Load.s106b" Daily=2
-Edit "Load.s107b" Daily=2
-Edit "Load.s102c" Daily=3
-Edit "Load.s103c" Daily=3
-Edit "Load.s104c" Daily=3
-Edit "Load.s98a"  Daily=3
-Edit "Load.s99b"  Daily=3
-Edit "Load.s100c" Daily=3
-Edit "Load.s76a"  Daily=4
-Edit "Load.s76b"  Daily=4
-Edit "Load.s76c"  Daily=4
-Edit "Load.s86b"  Daily=4
-Edit "Load.s87b"  Daily=4
-Edit "Load.s95b"  Daily=4
-Edit "Load.s96b"  Daily=5
-Edit "Load.s94a"  Daily=5
-Edit "Load.s92c"  Daily=5
-Edit "Load.s90b"  Daily=5
-Edit "Load.s88a"  Daily=5
-Edit "Load.s77b"  Daily=5
-Edit "Load.s80b"  Daily=6
-Edit "Load.s84c"  Daily=6
-Edit "Load.s85c"  Daily=6
-Edit "Load.s82a"  Daily=6
-Edit "Load.s83c"  Daily=6
-Edit "Load.s79a"  Daily=6
-Edit "Load.s73c"  Daily=7
-Edit "Load.s74c"  Daily=7
-Edit "Load.s75c"  Daily=7
-Edit "Load.s68a"  Daily=7
-Edit "Load.s69a"  Daily=7
-Edit "Load.s70a"  Daily=7
-Edit "Load.s71a"  Daily=8
-Edit "Load.s62c"  Daily=8
-Edit "Load.s63a"  Daily=8
-Edit "Load.s64b"  Daily=8
-Edit "Load.s65a"  Daily=8
-Edit "Load.s65b"  Daily=8
-Edit "Load.s65c"  Daily=9
-Edit "Load.s66c"  Daily=9
-Edit "Load.s58b"  Daily=9
-Edit "Load.s59b"  Daily=9
-Edit "Load.s55a"  Daily=9
-Edit "Load.s56b"  Daily=9
-Edit "Load.s35a"  Daily=10
-Edit "Load.s42a"  Daily=10
-Edit "Load.s47"   Daily=10
-Edit "Load.s49a"  Daily=10
-Edit "Load.s49b"  Daily=10
-Edit "Load.s49c"  Daily=10
-Edit "Load.s50c"  Daily=11
-Edit "Load.s51a"  Daily=11
-Edit "Load.s48"   Daily=11
-Edit "Load.s45a"  Daily=11
-Edit "Load.s46a"  Daily=11
-Edit "Load.s43b"  Daily=11
-Edit "Load.s41c"  Daily=12
-Edit "Load.s38b"  Daily=12
-Edit "Load.s39b"  Daily=12
-Edit "Load.s37a"  Daily=12
-Edit "Load.s31c"  Daily=12
-Edit "Load.s32c"  Daily=12
-Edit "Load.s33a"  Daily=13
-Edit "Load.s28a"  Daily=13
-Edit "Load.s29a"  Daily=13
-Edit "Load.s30c"  Daily=13
-Edit "Load.s24c"  Daily=13
-Edit "Load.s22b"  Daily=13
-Edit "Load.s19a"  Daily=14
-Edit "Load.s20a"  Daily=14
-Edit "Load.s34c"  Daily=14
-Edit "Load.s17c"  Daily=14
-Edit "Load.s16c"  Daily=14
-Edit "Load.s9a"   Daily=14
-Edit "Load.s10a"  Daily=15
-Edit "Load.s11a"  Daily=15
-Edit "Load.s12b"  Daily=15
-Edit "Load.s5c"   Daily=15
-Edit "Load.s6c"   Daily=15
-Edit "Load.s4c"   Daily=15
-Edit "Load.s2b"   Daily=1
+Edit "Load.s1a"   Daily=loadshape1
+Edit "Load.s7a"   Daily=loadshape1
+Edit "Load.s52a"  Daily=loadshape1
+Edit "Load.s53a"  Daily=loadshape1
+Edit "Load.s60a"  Daily=loadshape1
+Edit "Load.s109a" Daily=loadshape1
+Edit "Load.s112a" Daily=loadshape2
+Edit "Load.s113a" Daily=loadshape2
+Edit "Load.s114a" Daily=loadshape2
+Edit "Load.s111a" Daily=loadshape2
+Edit "Load.s106b" Daily=loadshape2
+Edit "Load.s107b" Daily=loadshape2
+Edit "Load.s102c" Daily=loadshape3
+Edit "Load.s103c" Daily=loadshape3
+Edit "Load.s104c" Daily=loadshape3
+Edit "Load.s98a"  Daily=loadshape3
+Edit "Load.s99b"  Daily=loadshape3
+Edit "Load.s100c" Daily=loadshape3
+Edit "Load.s76a"  Daily=loadshape4
+Edit "Load.s76b"  Daily=loadshape4
+Edit "Load.s76c"  Daily=loadshape4
+Edit "Load.s86b"  Daily=loadshape4
+Edit "Load.s87b"  Daily=loadshape4
+Edit "Load.s95b"  Daily=loadshape4
+Edit "Load.s96b"  Daily=loadshape5
+Edit "Load.s94a"  Daily=loadshape5
+Edit "Load.s92c"  Daily=loadshape5
+Edit "Load.s90b"  Daily=loadshape5
+Edit "Load.s88a"  Daily=loadshape5
+Edit "Load.s77b"  Daily=loadshape5
+Edit "Load.s80b"  Daily=loadshape6
+Edit "Load.s84c"  Daily=loadshape6
+Edit "Load.s85c"  Daily=loadshape6
+Edit "Load.s82a"  Daily=loadshape6
+Edit "Load.s83c"  Daily=loadshape6
+Edit "Load.s79a"  Daily=loadshape6
+Edit "Load.s73c"  Daily=loadshape7
+Edit "Load.s74c"  Daily=loadshape7
+Edit "Load.s75c"  Daily=loadshape7
+Edit "Load.s68a"  Daily=loadshape7
+Edit "Load.s69a"  Daily=loadshape7
+Edit "Load.s70a"  Daily=loadshape7
+Edit "Load.s71a"  Daily=loadshape8
+Edit "Load.s62c"  Daily=loadshape8
+Edit "Load.s63a"  Daily=loadshape8
+Edit "Load.s64b"  Daily=loadshape8
+Edit "Load.s65a"  Daily=loadshape8
+Edit "Load.s65b"  Daily=loadshape8
+Edit "Load.s65c"  Daily=loadshape9
+Edit "Load.s66c"  Daily=loadshape9
+Edit "Load.s58b"  Daily=loadshape9
+Edit "Load.s59b"  Daily=loadshape9
+Edit "Load.s55a"  Daily=loadshape9
+Edit "Load.s56b"  Daily=loadshape9
+Edit "Load.s35a"  Daily=loadshape10
+Edit "Load.s42a"  Daily=loadshape10
+Edit "Load.s47"   Daily=loadshape10
+Edit "Load.s49a"  Daily=loadshape10
+Edit "Load.s49b"  Daily=loadshape10
+Edit "Load.s49c"  Daily=loadshape10
+Edit "Load.s50c"  Daily=loadshape11
+Edit "Load.s51a"  Daily=loadshape11
+Edit "Load.s48"   Daily=loadshape11
+Edit "Load.s45a"  Daily=loadshape11
+Edit "Load.s46a"  Daily=loadshape11
+Edit "Load.s43b"  Daily=loadshape11
+Edit "Load.s41c"  Daily=loadshape12
+Edit "Load.s38b"  Daily=loadshape12
+Edit "Load.s39b"  Daily=loadshape12
+Edit "Load.s37a"  Daily=loadshape12
+Edit "Load.s31c"  Daily=loadshape12
+Edit "Load.s32c"  Daily=loadshape12
+Edit "Load.s33a"  Daily=loadshape13
+Edit "Load.s28a"  Daily=loadshape13
+Edit "Load.s29a"  Daily=loadshape13
+Edit "Load.s30c"  Daily=loadshape13
+Edit "Load.s24c"  Daily=loadshape13
+Edit "Load.s22b"  Daily=loadshape13
+Edit "Load.s19a"  Daily=loadshape14
+Edit "Load.s20a"  Daily=loadshape14
+Edit "Load.s34c"  Daily=loadshape14
+Edit "Load.s17c"  Daily=loadshape14
+Edit "Load.s16c"  Daily=loadshape14
+Edit "Load.s9a"   Daily=loadshape14
+Edit "Load.s10a"  Daily=loadshape15
+Edit "Load.s11a"  Daily=loadshape15
+Edit "Load.s12b"  Daily=loadshape15
+Edit "Load.s5c"   Daily=loadshape15
+Edit "Load.s6c"   Daily=loadshape15
+Edit "Load.s4c"   Daily=loadshape15
+Edit "Load.s2b"   Daily=loadshape1

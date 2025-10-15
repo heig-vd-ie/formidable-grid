@@ -599,10 +599,8 @@ def create_qsts_plots(df: pd.DataFrame):
 
     # Update layout for journal publication: larger, tighter, clean
     fig.update_layout(
-        height=1200,
-        width=2200,
         title_font=dict(size=32, family="Arial", color="black"),
-        showlegend=True,
+        showlegend=False,
         legend=dict(
             font=dict(size=20, family="Arial"),
             orientation="h",
@@ -614,7 +612,6 @@ def create_qsts_plots(df: pd.DataFrame):
             bordercolor="rgba(0,0,0,0.1)",
             borderwidth=1,
         ),
-        margin=dict(l=40, r=40, t=80, b=40),
         plot_bgcolor="white",
         paper_bgcolor="white",
         font=dict(size=22, family="Arial", color="black"),
@@ -623,9 +620,8 @@ def create_qsts_plots(df: pd.DataFrame):
 
     # Reduce space between subplots
     fig.update_layout(
-        grid=dict(rows=3, columns=2, pattern="independent"),
-        # Tighter vertical and horizontal spacing
-        autosize=False,
+        grid=dict(rows=3, columns=2),
+        autosize=True,
     )
     fig.update_annotations(font_size=20, font_family="Arial")
 
@@ -633,7 +629,6 @@ def create_qsts_plots(df: pd.DataFrame):
     for i in range(1, 4):
         for j in range(1, 3):
             fig.update_xaxes(
-                title_text="Time",
                 row=i,
                 col=j,
                 showgrid=True,
@@ -651,11 +646,6 @@ def create_qsts_plots(df: pd.DataFrame):
                 tickfont=dict(size=18, family="Arial"),
                 title_font=dict(size=20, family="Arial"),
             )
-
-    # Update x-axis labels
-    for i in range(1, 5):
-        for j in range(1, 3):
-            fig.update_xaxes(title_text="Time", row=i, col=j)
 
     # Save plot to HTML
     html_path = os.path.join(

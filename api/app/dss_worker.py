@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import json
 import os
 import random
+import shutil
 import time
 
 import numpy as np
@@ -60,6 +61,7 @@ class DSSWorker:
         self.temp_file = temp_file
         self.dss = dss
         self.profiles = profiles
+        self._remove_json_files()
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         self.__init_dir(env_vars)
         self._initialize_circuit(temp_file)
@@ -72,6 +74,19 @@ class DSSWorker:
             os.environ[key] = value
         os.chdir(self.basedir)
 
+    def _remove_json_files(self):
+        """Remove all JSON files from the output directory"""
+        if os.path.exists(OUTPUT_FOLDER):
+            for filename in os.listdir(OUTPUT_FOLDER):
+                file_path = os.path.join(OUTPUT_FOLDER, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete {file_path}. Reason: {e}")
+
     def __init_components(self):
         """Initialize component lists from the OpenDSS circuit"""
         self.loads = self.dss.Loads.AllNames() or []
@@ -82,7 +97,7 @@ class DSSWorker:
         self.pvsystems = self.dss.PVsystems.AllNames() or []
 
         self.loadshapes = [
-            l for l in self.dss.LoadShape.AllNames() or [] if not "pvshape" in l
+            l for l in self.dss.LoadShape.AllNames() or [] if "loadshape" in l
         ]
         self.pvloadshapes = [
             l for l in self.dss.LoadShape.AllNames() or [] if "pvshape" in l
