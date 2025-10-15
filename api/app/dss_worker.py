@@ -22,6 +22,7 @@ from common.konfig import (
     NOMINAL_POWER,
     OUTPUT_FOLDER,
     SMALL_NUMBER,
+    TIME_RESOLUTION,
 )
 from common.setup_log import setup_logger
 from pathlib import Path
@@ -102,7 +103,9 @@ class DSSWorker:
         self.pvloadshapes = [
             l for l in self.dss.LoadShape.AllNames() or [] if "pvshape" in l
         ]
-        self.vsources = self.dss.Vsources.AllNames() or []
+        self.vsources = [
+            v for v in self.dss.Vsources.AllNames() or [] if "fictive" in v
+        ]
 
     def _initialize_circuit(self, temp_file: str):
         """Initialize the OpenDSS circuit from the given .dss file"""
@@ -162,7 +165,7 @@ class DSSWorker:
         storage_capacity_kva: float,
         storage_capacity_kwh: float,
     ):
-        return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} %stored=100 %reserve=20 '
+        return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh*100} %stored=80'
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Randomly set load shape multipliers for all load shapes"""
@@ -190,16 +193,20 @@ class DSSWorker:
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
         self._set_load_shape_multipliers(curr_datetime)
+        self._set_power_storages(fixed_value=0.0)
+        self._set_power_pvs(fixed_value=0.0)
         self.dss.run_command("Solve")
         freq = self._update_freq(NOMINAL_FREQUENCY)
+        freqs = [freq]
         for _ in range(MAX_ITERATION):
             self.dss.run_command("Solve")
             new_freq = self._update_freq(freq)
             if abs(new_freq - freq) / NOMINAL_FREQUENCY < SMALL_NUMBER:
                 break
             freq = new_freq
+            freqs.append(new_freq)
         time_end = time.time()
-        return time_end - time_start, freq
+        return time_end - time_start, freq, freqs
 
     def _update_freq(self, freq: float):
         """Update the system frequency in the OpenDSS simulation"""
@@ -207,26 +214,51 @@ class DSSWorker:
         Δq = 0.0
         for vsource in self.vsources:
             self.dss.Circuit.SetActiveElement(f"Vsource.{vsource}")
-            Δp += self.dss.CktElement.Powers()[0]
-            Δq += self.dss.CktElement.Powers()[1]
+            Δp += (
+                self.dss.CktElement.Powers()[0]
+                + self.dss.CktElement.Powers()[2]
+                + self.dss.CktElement.Powers()[4]
+            )
+            Δq += (
+                self.dss.CktElement.Powers()[1]
+                + self.dss.CktElement.Powers()[3]
+                + self.dss.CktElement.Powers()[5]
+            )
 
-        freq -= Δp / (2 * H_SYSTEM * NOMINAL_POWER)
-
+        freq += (
+            Δp * NOMINAL_FREQUENCY * TIME_RESOLUTION / (2 * H_SYSTEM * NOMINAL_POWER)
+        )
+        Δf = (freq - NOMINAL_FREQUENCY) / NOMINAL_FREQUENCY
         self.dss.run_command(f"Edit Vsource.V1 basefreq={freq}")
+        self._set_power_storages(Δf)
+        self._set_power_pvs(Δq)
+        return freq
+
+    def _set_power_storages(self, Δf: float = 0.0, fixed_value: float | None = None):
         for storage in self.storages:
             self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
             power = self.dss.CktElement.Powers()
-            new_p_kw = power[0] + Δp * 0.1
-            new_q_kvar = power[1] + Δq * 0.1
+            if not fixed_value:
+                new_p_kw = (
+                    power[0] + power[2] + power[4] + Δf * 1.0 * NOMINAL_POWER
+                ) / 3
+            else:
+                new_p_kw = fixed_value
+            new_q_kvar = 0.0
+            state = "CHARGING" if new_p_kw > 0.0 else "DISCHARGING"
             self.dss.run_command(
-                f"Edit Storage.{storage} kW={new_p_kw:.2f} kvar={new_q_kvar:.2f}"
+                f"Edit Storage.{storage} %Discharge=100 kvar={new_q_kvar:.2f} kW={abs(new_p_kw):.2f} State={state}"
             )
+
+    def _set_power_pvs(self, Δq: float = 0.0, fixed_value: float | None = None):
         for pv in self.pvsystems:
             self.dss.Circuit.SetActiveElement(f"PVSystem.{pv}")
             power = self.dss.CktElement.Powers()
-            new_q_kvar = power[1] + Δq * 0.1
+            if not fixed_value:
+                new_q_kvar = power[1] + Δq * 0.1
+            else:
+                new_q_kvar = fixed_value
             self.dss.run_command(f"Edit PVSystem.{pv} kvar={new_q_kvar:.2f}")
-        return freq
 
     def _get_dict_data(self, klass: str) -> dict:
         """Get all data for a given class as a dictionary"""
@@ -251,7 +283,13 @@ class DSSWorker:
 
         return voltages_dict
 
-    def dump_results(self, delta_time: float, curr_datetime: datetime, freq: float):
+    def dump_results(
+        self,
+        delta_time: float,
+        curr_datetime: datetime,
+        freq: float,
+        freqs: list[float],
+    ):
         """Dump results to a JSON file for the current timestep"""
         timestamp = curr_datetime.strftime("%Y%m%d_%H%M%S")
         results = {
@@ -259,6 +297,7 @@ class DSSWorker:
             "solve_time_ms": delta_time,
             "converged": True if self.dss.Solution.Converged() else False,
             "frequency": freq,
+            "frequencies": freqs,
             "losses": self.dss.Circuit.Losses(),
             "voltages": self._get_voltages(),
             "lines": self._get_dict_data("line"),
@@ -274,8 +313,8 @@ class DSSWorker:
 
     def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
-        delta_time, freq = self._solve(curr_datetime)
-        self.dump_results(delta_time, curr_datetime, freq=freq)
+        delta_time, freq, freqs = self._solve(curr_datetime)
+        self.dump_results(delta_time, curr_datetime, freq=freq, freqs=freqs)
 
 
 def run_daily_powerflow(
@@ -344,7 +383,7 @@ def run_daily_powerflow(
             if future == done_id:
                 try:
                     ray.get(done_id)
-                except Exception as _:
+                except Exception as e:
                     logger.error(f"Error in worker id {done_id}, skipping this run...")
                     ray.cancel(done_id)
                 pbar.update(1)

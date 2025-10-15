@@ -40,7 +40,21 @@ def extract_voltages(df: pd.DataFrame, bus_name: str) -> pd.DataFrame:
     voltages["ang_c"] = voltages["bus_name"].apply(
         lambda v: np.degrees(np.arctan2(v[5], v[4])) if len(v) >= 6 else np.nan
     )
-    return voltages[["timestamp", "mag_a", "ang_a", "mag_b", "ang_b", "mag_c", "ang_c"]]
+    voltages["mag"] = voltages[["mag_a", "mag_b", "mag_c"]].mean(axis=1, skipna=True)
+    voltages["ang"] = voltages[["ang_a", "ang_b", "ang_c"]].mean(axis=1, skipna=True)
+    return voltages[
+        [
+            "timestamp",
+            "mag_a",
+            "ang_a",
+            "mag_b",
+            "ang_b",
+            "mag_c",
+            "ang_c",
+            "mag",
+            "ang",
+        ]
+    ]
 
 
 def extract_powers(
@@ -86,7 +100,21 @@ def _extract_powers(
     powers["kVAr_c"] = powers["element"].apply(
         lambda e: e["powers"][5] if e and len(e["powers"]) >= 6 else np.nan
     )
-    return powers[["timestamp", "kW_a", "kVAr_a", "kW_b", "kVAr_b", "kW_c", "kVAr_c"]]
+    powers["kW"] = powers[["kW_a", "kW_b", "kW_c"]].sum(axis=1, skipna=True)
+    powers["kVAr"] = powers[["kVAr_a", "kVAr_b", "kVAr_c"]].sum(axis=1, skipna=True)
+    return powers[
+        [
+            "timestamp",
+            "kW_a",
+            "kVAr_a",
+            "kW_b",
+            "kVAr_b",
+            "kW_c",
+            "kVAr_c",
+            "kW",
+            "kVAr",
+        ]
+    ]
 
 
 def plot_grid_topology(base_size_multiplier=1.0):
@@ -465,19 +493,22 @@ def create_qsts_plots(df: pd.DataFrame):
     # Create subplots
     fig = make_subplots(
         rows=3,
-        cols=2,
+        cols=3,
         subplot_titles=(
             "Losses vs Time",
             "Bus Voltages vs Time",
+            "Loads vs Time",
             "PV System Power vs Time",
             "Storage System Power vs Time",
+            "Vsource vs Time",
             "Frequency vs Time",
             "Solution Performance",
+            "Frequency Convergence",
         ),
         specs=[
-            [{"secondary_y": True}, {"secondary_y": False}],
-            [{"secondary_y": True}, {"secondary_y": True}],
-            [{"secondary_y": True}, {"secondary_y": False}],
+            [{"secondary_y": True}, {"secondary_y": False}, {"secondary_y": True}],
+            [{"secondary_y": True}, {"secondary_y": True}, {"secondary_y": True}],
+            [{"secondary_y": True}, {"secondary_y": False}, {"secondary_y": False}],
         ],
     )
 
@@ -486,6 +517,9 @@ def create_qsts_plots(df: pd.DataFrame):
     voltages = extract_voltages(df, "1")
     storages = extract_powers(df, "storages")
     pvs = extract_powers(df, "pvsystems")
+    loads = extract_powers(df, "loads")
+    vsources = extract_powers(df, "vsources", "vsource.fictive1")
+    freq0 = df["frequencies"].iloc[0]
 
     df["losses_kw"] = df["losses"].apply(lambda x: x[0])
     df["losses_reactive_kVAr"] = df["losses"].apply(lambda x: x[1])
@@ -493,7 +527,7 @@ def create_qsts_plots(df: pd.DataFrame):
         go.Scatter(
             x=df["timestamp"],
             y=df["losses_kw"],
-            name="Losses (kW)",
+            name="Losses (W)",
             line=dict(color="blue"),
         ),
         row=1,
@@ -503,7 +537,7 @@ def create_qsts_plots(df: pd.DataFrame):
         go.Scatter(
             x=df["timestamp"],
             y=df["losses_reactive_kVAr"],
-            name="Losses (kVAr)",
+            name="Losses (VAr)",
             line=dict(color="red"),
         ),
         row=1,
@@ -519,7 +553,7 @@ def create_qsts_plots(df: pd.DataFrame):
         fig.add_trace(
             go.Scatter(
                 x=voltages["timestamp"],
-                y=voltages["mag_a"],
+                y=voltages["mag"],
                 name=f"Bus {bus_name}",
                 line=dict(color=colors[i % len(colors)]),
             ),
@@ -531,7 +565,7 @@ def create_qsts_plots(df: pd.DataFrame):
     fig.add_trace(
         go.Scatter(
             x=pvs["timestamp"],
-            y=pvs["kW_a"],
+            y=pvs["kW"],
             name="PV Real Power (kW)",
             line=dict(color="orange"),
         ),
@@ -541,7 +575,7 @@ def create_qsts_plots(df: pd.DataFrame):
     fig.add_trace(
         go.Scatter(
             x=pvs["timestamp"],
-            y=pvs["kVAr_a"],
+            y=pvs["kVAr"],
             name="PV Reactive Power (kVAr)",
             line=dict(color="yellow"),
         ),
@@ -554,7 +588,7 @@ def create_qsts_plots(df: pd.DataFrame):
     fig.add_trace(
         go.Scatter(
             x=storages["timestamp"],
-            y=storages["kW_a"],
+            y=storages["kW"],
             name="Storage Real Power (kW)",
             line=dict(color="green"),
         ),
@@ -564,7 +598,7 @@ def create_qsts_plots(df: pd.DataFrame):
     fig.add_trace(
         go.Scatter(
             x=storages["timestamp"],
-            y=storages["kVAr_a"],
+            y=storages["kVAr"],
             name="Storage Reactive Power (kVAr)",
             line=dict(color="lightgreen"),
         ),
@@ -597,6 +631,63 @@ def create_qsts_plots(df: pd.DataFrame):
         col=2,
     )
 
+    # 7. Loads Power
+    fig.add_trace(
+        go.Scatter(
+            x=loads["timestamp"],
+            y=loads["kW"],
+            name="Load Real Power (kW)",
+            line=dict(color="brown"),
+        ),
+        row=1,
+        col=3,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=loads["timestamp"],
+            y=loads["kVAr"],
+            name="Load Reactive Power (kVAr)",
+            line=dict(color="pink"),
+        ),
+        row=1,
+        col=3,
+        secondary_y=True,
+    )
+
+    # 8. Vsource Power
+    fig.add_trace(
+        go.Scatter(
+            x=vsources["timestamp"],
+            y=vsources["kW"],
+            name="Vsource Real Power (kW)",
+            line=dict(color="cyan"),
+        ),
+        row=2,
+        col=3,
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=vsources["timestamp"],
+            y=vsources["kVAr"],
+            name="Vsource Reactive Power (kVAr)",
+            line=dict(color="lightblue"),
+        ),
+        row=2,
+        col=3,
+        secondary_y=True,
+    )
+
+    # 9. Frequencies
+    fig.add_trace(
+        go.Scatter(
+            y=freq0,
+            name="Frequency convergence",
+            line=dict(color="cyan"),
+        ),
+        row=3,
+        col=3,
+    )
+
     # Update layout for journal publication: larger, tighter, clean
     fig.update_layout(
         title_font=dict(size=32, family="Arial", color="black"),
@@ -620,14 +711,14 @@ def create_qsts_plots(df: pd.DataFrame):
 
     # Reduce space between subplots
     fig.update_layout(
-        grid=dict(rows=3, columns=2),
+        grid=dict(rows=3, columns=3),
         autosize=True,
     )
     fig.update_annotations(font_size=20, font_family="Arial")
 
     # Update axes for all subplots
     for i in range(1, 4):
-        for j in range(1, 3):
+        for j in range(1, 4):
             fig.update_xaxes(
                 row=i,
                 col=j,
