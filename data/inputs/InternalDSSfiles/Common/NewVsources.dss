@@ -1,1 +1,1 @@
-New vsource.V1      angle=0    basekv=0.416      baseMVA=0.1     enabled=y      MVAsc3=100      MVAsc1=100      bus1=610 phases=3 pu=1.0
+New vsource.V1      angle=0    basekv=0.416      baseMVA=0.1     enabled=y      MVAsc3=100      MVAsc1=100      bus1=61 phases=3 pu=1.0

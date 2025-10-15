@@ -10,7 +10,7 @@ import psutil
 import ray
 from tqdm import tqdm
 
-from extract_data.profile_reader import ProfileReader
+from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import setup_circuit
 from app.models import SimulationResponse
 from common.konfig import (
@@ -51,7 +51,7 @@ class DSSWorker:
         basedir: str,
         temp_file: str,
         env_vars: dict,
-        profiles: dict,
+        profiles: ProfileData,
         **kwargs,
     ):
         from opendssdirect import dss
@@ -131,20 +131,26 @@ class DSSWorker:
     ):
         return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} %stored=100 %reserve=20 '
 
-    def _set_load_shape_multipliers(self):
+    def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Randomly set load shape multipliers for all load shapes"""
-        # TODO: Replace with actual profile data
+        pv = self.profiles.pv[self.profiles.pv.index == curr_datetime]
+        load_p = self.profiles.load_p[self.profiles.load_p.index == curr_datetime]
+        load_q = self.profiles.load_q[self.profiles.load_q.index == curr_datetime]
+        if pv.empty or load_p.empty or load_q.empty:
+            logger.warning(f"No profile data found for {curr_datetime}")
+            return
         for i in range(len(self.loadshapes)):
-            self._change_seed(None)
-            multiplier = random.uniform(0.0, 1.0)
+            col_name = load_p.columns[i % len(load_p.columns)]
+            multiplier = load_p.iloc[0][col_name]
             self.dss.run_command(
                 f"Edit LoadShape.{self.loadshapes[i]} npts=1 mult=[{multiplier}]"
             )
+        # TODO: Set actual multipliers based on profiles for PV systems
 
-    def _solve(self):
+    def _solve(self, curr_datetime: datetime):
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
-        self._set_load_shape_multipliers()
+        self._set_load_shape_multipliers(curr_datetime)
         self.dss.run_command("Solve")
         freq = self._update_freq(NOMINAL_FREQUENCY)
         for _ in range(MAX_ITERATION):
@@ -229,7 +235,7 @@ class DSSWorker:
 
     def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
-        delta_time, freq = self._solve()
+        delta_time, freq = self._solve(curr_datetime)
         self.dump_results(delta_time, curr_datetime, freq=freq)
 
 
@@ -259,10 +265,11 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
-    profiles = ProfileReader().get_profiles()
+    profiles = ProfileReader().process_and_record_profiles().get_profiles()
 
     total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
     run_indices = list(range(total_runs))
+    logger.info(f"Total runs: {total_runs}")
 
     workers = [
         DSSWorker.remote(basedir, temp_file, env_vars, profiles, **kwargs)
@@ -288,7 +295,7 @@ def run_daily_powerflow(
         except StopIteration:
             break
 
-    pbar = tqdm(total=len(run_indices))
+    pbar = tqdm(total=total_runs, desc="Running Power Flows")
     while futures:
         # Wait for any future to complete
         done_ids, _ = ray.wait([f[1] for f in futures])

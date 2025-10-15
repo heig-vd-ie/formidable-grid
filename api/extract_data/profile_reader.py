@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+from dataclasses import dataclass
 import pandas as pd
 from common.setup_log import setup_logger
 from config import settings
@@ -7,6 +9,13 @@ logger = setup_logger(__name__)
 
 HEAD_NUMBER = int(1e4)
 MONTHTIME_FORMAT = "%m-%d %H:%M:%S"
+
+
+@dataclass
+class ProfileData:
+    pv: pd.DataFrame
+    load_p: pd.DataFrame
+    load_q: pd.DataFrame
 
 
 class ProfileReader:
@@ -217,14 +226,32 @@ class ProfileReader:
             f"Saved processed load profiles to {real_load_output_path} and {reactive_load_output_path}"
         )
 
-    def process_and_record_profiles(self):
-        self._pv_profile()
-        self._load_profile()
-        self._handle_missing_values()
-        self._record_profiles()
+    def process_and_record_profiles(self, force: bool = False):
+        """Process and record profiles if not already done or if forced"""
+        if (
+            os.path.exists(
+                self.INPUT_DATA_DIR / settings.profile_data.processed_pv_profile_file
+            )
+            and os.path.exists(
+                self.INPUT_DATA_DIR
+                / settings.profile_data.processed_real_load_profile_file
+            )
+            and os.path.exists(
+                self.INPUT_DATA_DIR
+                / settings.profile_data.processed_reactive_load_profile_file
+            )
+        ) or (not force):
+            logger.info("Loading existing processed profile data")
+        else:
+            logger.info("Processed profile data not found, processing raw data")
+            self._pv_profile()
+            self._load_profile()
+            self._handle_missing_values()
+            self._record_profiles()
         return self
 
-    def get_profiles(self):
+    def get_profiles(self) -> ProfileData:
+        """Load the processed profiles from Parquet files"""
         self.pv = pd.read_parquet(
             self.INPUT_DATA_DIR / settings.profile_data.processed_pv_profile_file
         )
@@ -235,7 +262,7 @@ class ProfileReader:
             self.INPUT_DATA_DIR
             / settings.profile_data.processed_reactive_load_profile_file
         )
-        return self
+        return ProfileData(pv=self.pv, load_p=self.load_p, load_q=self.load_q)
 
 
 if __name__ == "__main__":
