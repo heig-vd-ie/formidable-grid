@@ -327,7 +327,11 @@ def run_daily_powerflow(
         # Find which worker finished
         for i, (worker, future) in enumerate(futures):
             if future == done_id:
-                ray.get(done_id)
+                try:
+                    ray.get(done_id)
+                except Exception as _:
+                    logger.error(f"Error in worker id {done_id}, skipping this run...")
+                    ray.cancel(done_id)
                 pbar.update(1)
                 # Assign new task to this worker if any left
                 try:

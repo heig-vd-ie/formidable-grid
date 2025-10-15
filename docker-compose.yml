@@ -58,6 +58,10 @@ services:
     restart: unless-stopped
     depends_on:
       - fg-grafana
+    cap_add:
+      - SYS_PTRACE # allow process tracing
+    security_opt:
+      - seccomp:unconfined # disable default seccomp restrictions
   fg-grafana:
     build:
       context: .
