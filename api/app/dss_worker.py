@@ -81,7 +81,12 @@ class DSSWorker:
         self.storages = self.dss.Storages.AllNames() or []
         self.pvsystems = self.dss.PVsystems.AllNames() or []
 
-        self.loadshapes = self.dss.LoadShape.AllNames() or []
+        self.loadshapes = [
+            l for l in self.dss.LoadShape.AllNames() or [] if not "pvshape" in l
+        ]
+        self.pvloadshapes = [
+            l for l in self.dss.LoadShape.AllNames() or [] if "pvshape" in l
+        ]
         self.vsources = self.dss.Vsources.AllNames() or []
 
     def _initialize_circuit(self, temp_file: str):
@@ -112,7 +117,10 @@ class DSSWorker:
                 [0, storage_capacity_kw_mean * random.uniform(0.5, 1.5)]
             )
             storage_capacity_kwh = storage_capacity_kva * 4.0
-            self.dss.Command(self._add_pv_systems(i, bus_name, pv_capacity_kva))
+            pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
+            self.dss.Command(
+                self._add_pv_systems(i, bus_name, pv_capacity_kva, pv_shape)
+            )
             self.dss.Command(
                 self._add_storage_units(
                     i, bus_name, storage_capacity_kva, storage_capacity_kwh
@@ -123,11 +131,21 @@ class DSSWorker:
 
         self.__init_components()
 
-    def _add_pv_systems(self, i, bus_name, pv_capacity_kva):
-        return f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily=pvshape kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
+    def _add_pv_systems(
+        self,
+        i: int,
+        bus_name: str,
+        pv_capacity_kva: float,
+        pv_shape: str,
+    ):
+        return f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
 
     def _add_storage_units(
-        self, i, bus_name, storage_capacity_kva, storage_capacity_kwh
+        self,
+        i: int,
+        bus_name: str,
+        storage_capacity_kva: float,
+        storage_capacity_kwh: float,
     ):
         return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} %stored=100 %reserve=20 '
 
@@ -145,7 +163,13 @@ class DSSWorker:
             self.dss.run_command(
                 f"Edit LoadShape.{self.loadshapes[i]} npts=1 mult=[{multiplier}]"
             )
-        # TODO: Set actual multipliers based on profiles for PV systems
+        for i in range(len(self.pvloadshapes)):
+            col_name = pv.columns[i % len(pv.columns)]
+            multiplier = pv.iloc[0][col_name]
+            self.dss.run_command(
+                f"Edit LoadShape.{self.pvloadshapes[i]} npts=1 mult=[{multiplier}]"
+            )
+        # TODO: Set multiplier of reactive power based on load_q profile
 
     def _solve(self, curr_datetime: datetime):
         """Run power flow analysis for a single timestep"""
