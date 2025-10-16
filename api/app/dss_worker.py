@@ -15,14 +15,13 @@ from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import setup_circuit
 from app.models import SimulationResponse
 from common.konfig import (
-    H_SYSTEM,
     MAX_CPU_COUNT,
     MAX_ITERATION,
     NOMINAL_FREQUENCY,
-    NOMINAL_POWER,
     OUTPUT_FOLDER,
     SMALL_NUMBER,
-    TIME_RESOLUTION,
+    NOMINAL_DROOP,
+    NOMINAL_DAMPING,
 )
 from common.setup_log import setup_logger
 from pathlib import Path
@@ -119,34 +118,28 @@ class DSSWorker:
 
     def _add_extra_units(
         self,
-        number_of_pvs: int = 5,
-        pv_capacity_kva_mean: float = 10.0,
-        storage_capacity_kw_mean: float = 20.0,
-        grid_forming_percent: float = 0.5,
-        seed_number: int = 42,
+        number_of_pvs: int,
+        pv_capacity_kva_mean: float,
+        storage_capacity_kw_mean: float,
+        grid_forming_percent: float,
+        seed_number: int,
     ):
         """Add extra PV systems and storage units to the circuit for testing"""
         self.gfm_inv = []
         for i in range(number_of_pvs):
             self._change_seed(seed_number + i)
             bus_name = random.choice(self.buses)
-            pv_capacity_kva = max([0, pv_capacity_kva_mean * random.uniform(0.5, 1.5)])
-            storage_capacity_kva = max(
-                [0, storage_capacity_kw_mean * random.uniform(0.5, 1.5)]
-            )
-            storage_capacity_kwh = storage_capacity_kva * 4.0
             pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
-            self.dss.Command(
-                self._add_pv_systems(i, bus_name, pv_capacity_kva, pv_shape)
-            )
-            self.dss.Command(
-                self._add_storage_units(
-                    i, bus_name, storage_capacity_kva, storage_capacity_kwh
-                )
+            self._add_pv_systems(i, bus_name, pv_capacity_kva_mean, pv_shape)
+            self._add_storage_units(
+                i,
+                bus_name,
+                storage_capacity_kw_mean,
+                storage_capacity_kw_mean * 4000.0,
             )
             if random.random() < grid_forming_percent:  # is it grid-forming?
-                self.gfm_inv.append(i)
-
+                self.gfm_inv.append(f"Storage{i+1}")
+        self.storage_capacity_kw_mean = storage_capacity_kw_mean
         self.__init_components()
 
     def _add_pv_systems(
@@ -156,7 +149,9 @@ class DSSWorker:
         pv_capacity_kva: float,
         pv_shape: str,
     ):
-        return f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
+        self.dss.Command(
+            f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
+        )
 
     def _add_storage_units(
         self,
@@ -165,7 +160,12 @@ class DSSWorker:
         storage_capacity_kva: float,
         storage_capacity_kwh: float,
     ):
-        return f'New "Storage.Storage{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 kva={storage_capacity_kva} kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh*100} %stored=80'
+        self.dss.Command(
+            f"New LoadShape.Storage{i+1}Shape npts=1 MInterval=15 mult=[{SMALL_NUMBER}]"
+        )
+        self.dss.Command(
+            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=0.48 kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} dispmode=follow daily=Storage{i+1}Shape'
+        )
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Randomly set load shape multipliers for all load shapes"""
@@ -193,72 +193,68 @@ class DSSWorker:
         """Run power flow analysis for a single timestep"""
         time_start = time.time()
         self._set_load_shape_multipliers(curr_datetime)
-        self._set_power_storages(fixed_value=0.0)
-        self._set_power_pvs(fixed_value=0.0)
         self.dss.run_command("Solve")
-        freq = self._update_freq(NOMINAL_FREQUENCY)
-        freqs = [freq]
+        Δp, Δq = self._extract_load_pv_powers()
+        freqs = [freq := NOMINAL_FREQUENCY]
         for _ in range(MAX_ITERATION):
+            new_freq = self._update_freq(freq, Δp)
+            self._set_power_storages(Δp, Δq)
             self.dss.run_command("Solve")
-            new_freq = self._update_freq(freq)
+            freqs.append(new_freq)
             if abs(new_freq - freq) / NOMINAL_FREQUENCY < SMALL_NUMBER:
                 break
             freq = new_freq
-            freqs.append(new_freq)
         time_end = time.time()
         return time_end - time_start, freq, freqs
 
-    def _update_freq(self, freq: float):
-        """Update the system frequency in the OpenDSS simulation"""
+    def _extract_power(self, powers):
+        if len(powers) < 3:
+            return powers[0], powers[1]
+        elif len(powers) < 5:
+            return (
+                powers[0] + powers[2],
+                powers[1] + powers[3],
+            )
+        else:
+            return (
+                powers[0] + powers[2] + powers[4],
+                powers[1] + powers[3] + powers[5],
+            )
+
+    def _extract_load_pv_powers(self):
+        """Extract powers of loads and PVs"""
         Δp = 0.0
         Δq = 0.0
-        for vsource in self.vsources:
-            self.dss.Circuit.SetActiveElement(f"Vsource.{vsource}")
-            Δp += (
-                self.dss.CktElement.Powers()[0]
-                + self.dss.CktElement.Powers()[2]
-                + self.dss.CktElement.Powers()[4]
-            )
-            Δq += (
-                self.dss.CktElement.Powers()[1]
-                + self.dss.CktElement.Powers()[3]
-                + self.dss.CktElement.Powers()[5]
-            )
-
-        freq += (
-            Δp * NOMINAL_FREQUENCY * TIME_RESOLUTION / (2 * H_SYSTEM * NOMINAL_POWER)
-        )
-        Δf = (freq - NOMINAL_FREQUENCY) / NOMINAL_FREQUENCY
-        self.dss.run_command(f"Edit Vsource.V1 basefreq={freq}")
-        self._set_power_storages(Δf)
-        self._set_power_pvs(Δq)
-        return freq
-
-    def _set_power_storages(self, Δf: float = 0.0, fixed_value: float | None = None):
-        for storage in self.storages:
-            self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
-            power = self.dss.CktElement.Powers()
-            if not fixed_value:
-                new_p_kw = (
-                    power[0] + power[2] + power[4] + Δf * 1.0 * NOMINAL_POWER
-                ) / 3
-            else:
-                new_p_kw = fixed_value
-            new_q_kvar = 0.0
-            state = "CHARGING" if new_p_kw > 0.0 else "DISCHARGING"
-            self.dss.run_command(
-                f"Edit Storage.{storage} %Discharge=100 kvar={new_q_kvar:.2f} kW={abs(new_p_kw):.2f} State={state}"
-            )
-
-    def _set_power_pvs(self, Δq: float = 0.0, fixed_value: float | None = None):
+        for load in self.loads:
+            self.dss.Circuit.SetActiveElement(f"Load.{load}")
+            dp, dq = self._extract_power(self.dss.CktElement.Powers())
+            Δp += dp
+            Δq += dq
         for pv in self.pvsystems:
             self.dss.Circuit.SetActiveElement(f"PVSystem.{pv}")
-            power = self.dss.CktElement.Powers()
-            if not fixed_value:
-                new_q_kvar = power[1] + Δq * 0.1
-            else:
-                new_q_kvar = fixed_value
-            self.dss.run_command(f"Edit PVSystem.{pv} kvar={new_q_kvar:.2f}")
+            dp, dq = self._extract_power(self.dss.CktElement.Powers())
+            Δp += dp
+            Δq += dq
+        return Δp, Δq
+
+    def _update_freq(self, freq: float = NOMINAL_FREQUENCY, Δp: float = 0.0):
+        """Update the system frequency in the OpenDSS simulation"""
+        Δf = -(
+            Δp
+            * NOMINAL_FREQUENCY
+            / (len(self.storages) * self.storage_capacity_kw_mean + 100)
+        )
+        return freq + Δf
+
+    def _set_power_storages(self, Δp: float = 0.0, Δq: float = 0.0):
+        for storage in self.storages:
+            self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
+            mult_p = Δp * 3 / (self.storage_capacity_kw_mean * len(self.storages))
+            new_q_kvar = Δq / len(self.storages)
+            cosφ = (Δp + SMALL_NUMBER) / (Δp**2 + Δq**2 + SMALL_NUMBER**2) ** 0.5
+            self.dss.run_command(
+                f"Edit LoadShape.{storage}Shape npts=1 mult=[{mult_p}]"
+            )
 
     def _get_dict_data(self, klass: str) -> dict:
         """Get all data for a given class as a dictionary"""
@@ -384,7 +380,9 @@ def run_daily_powerflow(
                 try:
                     ray.get(done_id)
                 except Exception as e:
-                    logger.error(f"Error in worker id {done_id}, skipping this run...")
+                    logger.error(
+                        f"Error in worker id {done_id}: {e}, skipping this run..."
+                    )
                     ray.cancel(done_id)
                 pbar.update(1)
                 # Assign new task to this worker if any left
