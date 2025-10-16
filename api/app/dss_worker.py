@@ -88,10 +88,12 @@ class DSSWorker:
 
     def __init_components(self):
         """Initialize component lists from the OpenDSS circuit"""
-        self.loads = self.dss.Loads.AllNames() or []
+        self.loads = [l for l in self.dss.Loads.AllNames() or [] if not "Storage" in l]
         self.lines = self.dss.Lines.AllNames() or []
         self.transformers = self.dss.Transformers.AllNames() or []
-        self.generators = self.dss.Generators.AllNames() or []
+        self.generators = [
+            g for g in self.dss.Generators.AllNames() or [] if not "Storage" in g
+        ]
         self.storages = self.dss.Storages.AllNames() or []
         self.pvsystems = self.dss.PVsystems.AllNames() or []
 
