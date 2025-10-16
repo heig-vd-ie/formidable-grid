@@ -120,9 +120,9 @@ class DSSWorker:
     def _add_extra_units(
         self,
         number_of_pvs: int,
-        pv_capacity_kva_mean: float,
-        storage_capacity_kw_mean: float,
-        grid_forming_percent: float,
+        pv_kva: float,
+        storage_kva: float,
+        gfmi_percentage: float,
         seed_number: int,
     ):
         """Add extra PV systems and storage units to the circuit for testing"""
@@ -130,15 +130,10 @@ class DSSWorker:
             self._change_seed(seed_number + i)
             bus_name = random.choice(self.buses)
             pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
-            self._add_pv_systems(i, bus_name, pv_capacity_kva_mean, pv_shape)
-            if random.random() < grid_forming_percent:  # is it grid-forming?
-                self._add_storage_units(
-                    i,
-                    bus_name,
-                    storage_capacity_kw_mean,
-                    storage_capacity_kw_mean * 4000.0,
-                )
-        self.storage_capacity_kw_mean = storage_capacity_kw_mean
+            self._add_pv_systems(i, bus_name, pv_kva, pv_shape)
+            if random.random() < gfmi_percentage:  # is it grid-forming?
+                self._add_storage_units(i, bus_name, storage_kva)
+        self.storage_kva = storage_kva
         self.__init_components()
 
     def _add_pv_systems(
@@ -156,14 +151,13 @@ class DSSWorker:
         self,
         i: int,
         bus_name: str,
-        storage_capacity_kva: float,
-        storage_capacity_kwh: float,
+        storage_kva: float,
     ):
         self.dss.Command(
             f"New LoadShape.Storage{i+1}Shape npts=1 MInterval=15 mult=[{SMALL_NUMBER}]"
         )
         self.dss.Command(
-            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=0.48 kWrated={storage_capacity_kva} kWhrated={storage_capacity_kwh} dispmode=follow daily=Storage{i+1}Shape'
+            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=0.48 kWrated={storage_kva} kWhrated={storage_kva*4000} dispmode=follow daily=Storage{i+1}Shape'
         )
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
@@ -242,14 +236,14 @@ class DSSWorker:
             Δp
             * NOMINAL_FREQUENCY
             * NOMINAL_DROOP
-            / (len(self.storages) * self.storage_capacity_kw_mean)
+            / (len(self.storages) * self.storage_kva)
         )
         return freq + Δf
 
     def _set_power_storages(self, Δp: float = 0.0, Δq: float = 0.0):
         for storage in self.storages:
             self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
-            mult_p = Δp * 3 / (self.storage_capacity_kw_mean * len(self.storages))
+            mult_p = Δp * 3 / (self.storage_kva * len(self.storages))
             new_q_kvar = Δq / len(self.storages)
             cosφ = (Δp + SMALL_NUMBER) / (Δp**2 + Δq**2 + SMALL_NUMBER**2) ** 0.5
             self.dss.run_command(

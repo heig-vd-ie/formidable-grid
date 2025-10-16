@@ -56,9 +56,9 @@ def run_daily_example(
         from_datetime=from_datetime,
         to_datetime=to_datetime,
         number_of_pvs=config.number_of_pvs,
-        pv_capacity_kva_mean=config.pv_capacity_kva_mean,
-        storage_capacity_kw_mean=config.storage_capacity_kw_mean,
-        grid_forming_percent=config.grid_forming_percent,
+        pv_kva=config.pv_kva,
+        storage_kva=config.storage_kva,
+        gfmi_percentage=config.gfmi_percentage,
         seed_number=config.seed_number,
     )
     df = read_results()
