@@ -21,7 +21,6 @@ from common.konfig import (
     OUTPUT_FOLDER,
     SMALL_NUMBER,
     NOMINAL_DROOP,
-    NOMINAL_DAMPING,
 )
 from common.setup_log import setup_logger
 from pathlib import Path
@@ -125,20 +124,18 @@ class DSSWorker:
         seed_number: int,
     ):
         """Add extra PV systems and storage units to the circuit for testing"""
-        self.gfm_inv = []
         for i in range(number_of_pvs):
             self._change_seed(seed_number + i)
             bus_name = random.choice(self.buses)
             pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
             self._add_pv_systems(i, bus_name, pv_capacity_kva_mean, pv_shape)
-            self._add_storage_units(
-                i,
-                bus_name,
-                storage_capacity_kw_mean,
-                storage_capacity_kw_mean * 4000.0,
-            )
             if random.random() < grid_forming_percent:  # is it grid-forming?
-                self.gfm_inv.append(f"Storage{i+1}")
+                self._add_storage_units(
+                    i,
+                    bus_name,
+                    storage_capacity_kw_mean,
+                    storage_capacity_kw_mean * 4000.0,
+                )
         self.storage_capacity_kw_mean = storage_capacity_kw_mean
         self.__init_components()
 
@@ -242,7 +239,8 @@ class DSSWorker:
         Δf = -(
             Δp
             * NOMINAL_FREQUENCY
-            / (len(self.storages) * self.storage_capacity_kw_mean + 100)
+            * NOMINAL_DROOP
+            / (len(self.storages) * self.storage_capacity_kw_mean)
         )
         return freq + Δf
 
