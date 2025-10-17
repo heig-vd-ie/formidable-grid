@@ -49,7 +49,7 @@ class DSSWorker:
     def __init__(
         self,
         basedir: str,
-        temp_file: str,
+        temp_file: Path,
         env_vars: dict,
         profiles: ProfileData,
         **kwargs,
@@ -107,10 +107,10 @@ class DSSWorker:
             v for v in self.dss.Vsources.AllNames() or [] if "fictive" in v
         ]
 
-    def _initialize_circuit(self, temp_file: str):
+    def _initialize_circuit(self, temp_file: Path):
         """Initialize the OpenDSS circuit from the given .dss file"""
         self.dss.Command("Clear")
-        self.dss.Command(f'Compile "{temp_file}"')
+        self.dss.Command(f'Compile "{temp_file.__str__()}"')
 
     def _change_seed(self, seed_number: int | None):
         """Change the random seed for reproducibility"""
