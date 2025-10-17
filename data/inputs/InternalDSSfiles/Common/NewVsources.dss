@@ -1,1 +1,1 @@
-New Vsource.fictive1 bus1=61 basekv=0.416 phases=3 pu=1.0 MVAsc3=100 MVAsc1=60 angle=0
+New Vsource.fictive1 bus1=61 basekv=4.16 phases=3 pu=1.0 MVAsc3=100 MVAsc1=60 angle=0

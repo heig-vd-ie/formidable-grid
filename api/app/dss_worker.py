@@ -144,7 +144,7 @@ class DSSWorker:
         pv_shape: str,
     ):
         self.dss.Command(
-            f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=0.48 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
+            f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=4.16 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
         )
 
     def _add_storage_units(
@@ -154,10 +154,7 @@ class DSSWorker:
         storage_kva: float,
     ):
         self.dss.Command(
-            f"New LoadShape.Storage{i+1}Shape npts=1 MInterval=15 mult=[{SMALL_NUMBER}]"
-        )
-        self.dss.Command(
-            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=0.48 kWrated={storage_kva} kWhrated={storage_kva*4000} dispmode=follow daily=Storage{i+1}Shape'
+            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=4.16 kWrated={storage_kva} kWhrated={storage_kva*4000}'
         )
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
