@@ -1,4 +1,4 @@
-from examples.run_dynamics import setup_and_run_circuit
+from experiments.run_dynamics import setup_and_run_circuit
 
 
 class TestDynamicsExample:
