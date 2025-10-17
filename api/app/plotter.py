@@ -23,22 +23,34 @@ def extract_voltages(df: pd.DataFrame, bus_name: str) -> pd.DataFrame:
     voltages = df
     voltages["bus_name"] = df["voltages"].apply(lambda v: v.get(bus_name, []))
     voltages["mag_a"] = voltages["bus_name"].apply(
-        lambda v: np.sqrt(v[0] ** 2 + v[1] ** 2) if v else np.nan
+        lambda v: np.sqrt(v[0] ** 2 + v[1] ** 2) if v and v[0] and v[1] else np.nan
     )
     voltages["ang_a"] = voltages["bus_name"].apply(
-        lambda v: np.degrees(np.arctan2(v[1], v[0])) if v else np.nan
+        lambda v: np.degrees(np.arctan2(v[1], v[0])) if v and v[0] and v[1] else np.nan
     )
     voltages["mag_b"] = voltages["bus_name"].apply(
-        lambda v: np.sqrt(v[2] ** 2 + v[3] ** 2) if len(v) >= 4 else np.nan
+        lambda v: (
+            np.sqrt(v[2] ** 2 + v[3] ** 2) if len(v) >= 4 and v[2] and v[3] else np.nan
+        )
     )
     voltages["ang_b"] = voltages["bus_name"].apply(
-        lambda v: np.degrees(np.arctan2(v[3], v[2])) if len(v) >= 4 else np.nan
+        lambda v: (
+            np.degrees(np.arctan2(v[3], v[2]))
+            if len(v) >= 4 and v[2] and v[3]
+            else np.nan
+        )
     )
     voltages["mag_c"] = voltages["bus_name"].apply(
-        lambda v: np.sqrt(v[4] ** 2 + v[5] ** 2) if len(v) >= 6 else np.nan
+        lambda v: (
+            np.sqrt(v[4] ** 2 + v[5] ** 2) if len(v) >= 6 and v[4] and v[5] else np.nan
+        )
     )
     voltages["ang_c"] = voltages["bus_name"].apply(
-        lambda v: np.degrees(np.arctan2(v[5], v[4])) if len(v) >= 6 else np.nan
+        lambda v: (
+            np.degrees(np.arctan2(v[5], v[4]))
+            if len(v) >= 6 and v[4] and v[5]
+            else np.nan
+        )
     )
     voltages["mag"] = voltages[["mag_a", "mag_b", "mag_c"]].mean(axis=1, skipna=True)
     voltages["ang"] = voltages[["ang_a", "ang_b", "ang_c"]].mean(axis=1, skipna=True)

@@ -31,10 +31,14 @@ class HEIGVDCHMeteoDB:
 
     def extract_pv_profiles(
         self,
-        filename: str = settings.profile_data.folder_path
-        + "/"
-        + settings.profile_data.pv_profile_file,
+        filename: str | None = None,
     ):
+        if filename is None:
+            filename = (
+                settings.profile_data.folder_path
+                + "/"
+                + settings.profile_data.pv_profile_file
+            )
         dfs = []
         for year in range(2020, 2026):
             query_pvs = self._pv_profile_query(year)
@@ -91,10 +95,14 @@ class HEIGVDCHMeteoDB:
 
     def extract_load_profiles(
         self,
-        filename: str = settings.profile_data.folder_path
-        + "/"
-        + settings.profile_data.load_profile_file,
+        filename: str | None = None,
     ):
+        if filename is None:
+            filename = (
+                settings.profile_data.folder_path
+                + "/"
+                + settings.profile_data.load_profile_file
+            )
         query_load = self._load_profile_query()
         df = self._query(query_load).sort_values(by="Datetime").reset_index(drop=True)
         logger.info(f"Extracted load profile data")

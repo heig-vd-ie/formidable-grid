@@ -12,7 +12,7 @@ import ray
 from tqdm import tqdm
 
 from extract_data.profile_reader import ProfileData, ProfileReader
-from app.helpers import setup_circuit
+from app.helpers import clean_nans, setup_circuit
 from app.models import SimulationResponse
 from common.konfig import (
     MAX_CPU_COUNT,
@@ -297,9 +297,10 @@ class DSSWorker:
             "pvsystems": self._get_dict_data("pvsystem"),
             "vsources": self._get_dict_data("vsource"),
         }
+        cleaned_results = clean_nans(results)
         output_path = os.path.join(OUTPUT_FOLDER, f"results_{timestamp}.json")
         with open(output_path, "w") as f:
-            json.dump(results, f, indent=4)
+            json.dump(cleaned_results, f, indent=4)
 
     def solve(self, curr_datetime: datetime):
         """Run power flow and extract results"""
