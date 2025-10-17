@@ -37,6 +37,7 @@ pyarrow = "^21.0.0"
 dynaconf = "^3.2.11"
 py-spy = "^0.4.1"
 memray = "^1.18.0"
+pandasgui = "^0.2.15"
 
 
 [tool.poetry.group.dev.dependencies]
