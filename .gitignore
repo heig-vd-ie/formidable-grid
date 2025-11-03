@@ -193,3 +193,5 @@ data/0*
 data/chunks_head
 data/wal
 data/lock
+
+logs
