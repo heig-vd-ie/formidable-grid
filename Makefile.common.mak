@@ -1,6 +1,6 @@
 # Common Makefile
 
-PYTHON_VERSION := 3.11
+PYTHON_VERSION := 3.12
 VENV_DIR := .venv
 ORG := heig-vd-ie
 
@@ -111,14 +111,10 @@ uninstall-venv: ## Uninstall the virtual environment
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
 	@if [ -n "$(file)" ]; then \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest "$(file)" -v; \
+		PYTHONWARNINGS=ignore python -m pytest api/tests "$(file)" -v; \
 	else \
-		PYTHONWARNINGS=ignore $(VENV_DIR)/bin/python -m pytest **/tests -v;\
+		PYTHONWARNINGS=ignore python -m pytest api/tests -v;\
 	fi
-
-format-julia:  ## Format Julia code in the src directory
-	@echo "Formatting Julia code with JuliaFormatter..."
-	julia -e 'using JuliaFormatter; format("src/")'
 
 format-py: ## Format Python code using black
 	@echo "Formatting Python code with black..."

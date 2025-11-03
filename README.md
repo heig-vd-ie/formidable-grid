@@ -8,10 +8,10 @@ Author: Mohammad Rayati
 2. Then, run `make install-all` or `make venv-activate` if everything is already installed.
 3. If you delete your `.venv`, you can run `make install-all` to install everything from beginning.
 
-## Install GridLab-d
+## Start the project
 
-Use docker for installing project of [GridLab-D](https://github.com/gridlab-d/gridlab-d):
+Use docker services and native containers for development:
 ```sh
-make start-dev
+make start # it opens three pane (servers, development frontend, and development backend)
 ```
 

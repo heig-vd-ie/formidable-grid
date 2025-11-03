@@ -180,3 +180,16 @@ data/outputs
 data/uploads
 
 opendss/Exports/*
+
+
+ray
+
+data/queries.active
+spill
+
+.secrets.toml
+
+data/0*
+data/chunks_head
+data/wal
+data/lock

@@ -1,12 +1,27 @@
 import os
 from pathlib import Path
 import tempfile
-
+import math
 from opendssdirect import dss
 
 from common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def clean_nans(obj):
+    """Recursively replace NaN/Inf with None in nested lists/dicts."""
+    if isinstance(obj, dict):
+        return {k: clean_nans(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_nans(v) for v in obj]
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        else:
+            return obj
+    else:
+        return obj
 
 
 def replace_env_vars_in_dss(dss_file_path: Path) -> Path:

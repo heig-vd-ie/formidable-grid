@@ -1,9 +1,10 @@
 services:
-  gridlabd:
+  fg-gridlabd:
     build:
       context: .
-      dockerfile: api/Dockerfile
-    container_name: gridlabd
+      dockerfile: Dockerfile.gridlabd
+    container_name: fg-gridlabd
+    network_mode: host
     environment:
       - INPUTS_FOLDER=${INPUTS_FOLDER}
       - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
@@ -13,4 +14,82 @@ services:
       - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
       - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
     user: root
-
+  fg-py-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.python
+      ssh:
+        - default
+    container_name: fg-py-api
+    network_mode: host
+    environment:
+      - SERVER_RAY_ADDRESS=${HEAD_HOST}:${SERVER_RAY_PORT}
+      - SERVER_PY_PORT=${SERVER_PY_PORT}
+      - SERVER_RAY_PORT=${SERVER_RAY_PORT}
+      - SERVER_RAY_DASHBOARD_PORT=${SERVER_RAY_DASHBOARD_PORT}
+      - SERVER_RAY_METRICS_EXPORT_PORT=${SERVER_RAY_METRICS_EXPORT_PORT}
+      - INTERNAL_DSSFILES_FOLDER=${INTERNAL_DSSFILES_FOLDER}
+      - EXTERNAL_DSSFILES_FOLDER=${EXTERNAL_DSSFILES_FOLDER}
+      - DSS_EXPORT_FOLDER=${DSS_EXPORT_FOLDER}
+      - ALLOC_CPUS=${ALLOC_CPUS}
+      - ALLOC_GPUS=${ALLOC_GPUS}
+      - ALLOC_RAMS=${ALLOC_RAMS}
+      - GRAFANA_PORT=${GRAFANA_PORT}
+      - LOCAL_HOST=${LOCAL_HOST}
+      - RAY_GRAFANA_HOST=http://${LOCAL_HOST}:${GRAFANA_PORT}
+      - RAY_GRAFANA_IFRAME_HOST=http://${LOCAL_HOST}:${GRAFANA_PORT}
+      - RAY_GRAFANA_ORG_ID=1
+      - RAY_PROMETHEUS_HOST=http://${LOCAL_HOST}:${PROMETHEUS_PORT}
+      - RAY_PROMETHEUS_NAME=Prometheus
+    ports:
+      - "${SERVER_PY_PORT}:${SERVER_PY_PORT}"
+      - "${SERVER_RAY_PORT}:${SERVER_RAY_PORT}"
+      - "${SERVER_RAY_DASHBOARD_PORT}:${SERVER_RAY_DASHBOARD_PORT}"
+      - "${SERVER_RAY_METRICS_EXPORT_PORT}:${SERVER_RAY_METRICS_EXPORT_PORT}"
+      - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}" # Prometheus
+    volumes:
+      - ./spill:/tmp/spill
+      - ./ray:/tmp/ray
+      - ./.cache:/app/.cache:rw
+      - ./data:/app/data:rw
+      - ./api:/app/src:rw
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    depends_on:
+      - fg-grafana
+    cap_add:
+      - SYS_PTRACE # allow process tracing
+    security_opt:
+      - seccomp:unconfined # disable default seccomp restrictions
+  fg-grafana:
+    build:
+      context: .
+      dockerfile: Dockerfile.grafana
+    container_name: fg-grafana
+    network_mode: host
+    environment:
+      - GF_SERVER_HTTP_PORT=${GRAFANA_PORT}
+      - PROMETHEUS_PORT=${PROMETHEUS_PORT}
+    restart: unless-stopped
+  fg-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      ssh:
+        - default
+    container_name: fg-frontend
+    network_mode: host
+    environment:
+      - VITE_API_URL=http://${LOCAL_HOST}:${SERVER_PY_PORT}
+      - VITE_FRONTEND_PORT=${FRONTEND_PORT}
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    volumes:
+      - ./.cache:/app/.cache:rw
+      - ./frontend:/app:rw
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    depends_on:
+      - fg-py-api
