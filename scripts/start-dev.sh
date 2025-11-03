@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SESSION_NAME=${1:-"formidable-dev"}
+SESSION_NAME="formidable-dev"
 PROJECT_DIR=$(pwd)
 
 tmux kill-session -t "$SESSION_NAME" 2>/dev/null
@@ -17,6 +17,10 @@ tmux send-keys -t "$SESSION_NAME:0.0" "source .envrc && make build _start logs" 
 
 # Focus on the which pane
 tmux select-pane -t "$SESSION_NAME:0.1"
+
+# Enable pane titles
+tmux set-window-option -t "$SESSION_NAME:0" pane-border-status top
+tmux set-window-option -t "$SESSION_NAME:0" pane-border-format '#{pane_index}: #{pane_title}'
 
 # Set titles
 titles=(
