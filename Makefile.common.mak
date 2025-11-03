@@ -111,9 +111,9 @@ uninstall-venv: ## Uninstall the virtual environment
 run-tests-py: ## [file] Run tests using pytest (check venv is activated otherwise activated)
 	@echo "Running Python tests..."
 	@if [ -n "$(file)" ]; then \
-		PYTHONWARNINGS=ignore python -m pytest api/tests "$(file)" -v; \
+		docker exec -it fg-py-api python -m pytest src/tests "$(file)" -v; \
 	else \
-		PYTHONWARNINGS=ignore python -m pytest api/tests -v;\
+		docker exec -it fg-py-api python -m pytest src/tests -v;\
 	fi
 
 format-py: ## Format Python code using black

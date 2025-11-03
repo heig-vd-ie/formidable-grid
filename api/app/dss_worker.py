@@ -119,11 +119,11 @@ class DSSWorker:
 
     def _add_extra_units(
         self,
-        number_of_pvs: int,
-        pv_kva: float,
-        storage_kva: float,
-        gfmi_percentage: float,
-        seed_number: int,
+        number_of_pvs: int = 1,
+        pv_kva: float = 1.0,
+        storage_kva: float = 1.0,
+        gfmi_percentage: float = 20.0,
+        seed_number: int = 144,
     ):
         """Add extra PV systems and storage units to the circuit for testing"""
         for i in range(number_of_pvs):
