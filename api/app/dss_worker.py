@@ -24,6 +24,7 @@ from common.konfig import (
 )
 from common.setup_log import setup_logger
 from pathlib import Path
+from dataclasses import dataclass
 
 logger = setup_logger(__name__)
 
@@ -44,26 +45,30 @@ def ray_shutdown():
     ray.shutdown()
 
 
+@dataclass
+class InputDSSWorker:
+    basedir: str
+    temp_file: Path
+    env_vars: dict
+
+
 @ray.remote
 class DSSWorker:
     def __init__(
         self,
-        basedir: str,
-        temp_file: Path,
-        env_vars: dict,
+        input_dss_worker: InputDSSWorker,
         profiles: ProfileData,
         **kwargs,
     ):
         from opendssdirect import dss
 
-        self.basedir = basedir
-        self.temp_file = temp_file
+        self.input_dss_worker = input_dss_worker
         self.dss = dss
         self.profiles = profiles
         self._remove_json_files()
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        self.__init_dir(env_vars)
-        self._initialize_circuit(temp_file)
+        self.__init_dir(input_dss_worker.env_vars)
+        self._initialize_circuit(input_dss_worker.temp_file)
         self.buses = self.dss.Circuit.AllBusNames() or []
         self._add_extra_units(**kwargs)
         self.__init_components()
@@ -71,7 +76,7 @@ class DSSWorker:
     def __init_dir(self, env_vars: dict):
         for key, value in env_vars.items():
             os.environ[key] = value
-        os.chdir(self.basedir)
+        os.chdir(self.input_dss_worker.basedir)
 
     def _remove_json_files(self):
         """Remove all JSON files from the output directory"""
@@ -338,7 +343,15 @@ def run_daily_powerflow(
     logger.info(f"Total runs: {total_runs}")
 
     workers = [
-        DSSWorker.remote(basedir, temp_file, env_vars, profiles, **kwargs)
+        DSSWorker.remote(
+            InputDSSWorker(
+                basedir=basedir,
+                temp_file=temp_file,
+                env_vars=env_vars,
+            ),
+            profiles,
+            **kwargs,
+        )
         for _ in range(cpu_count - 1)
     ]
 
