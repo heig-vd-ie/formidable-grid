@@ -5,6 +5,7 @@ import random
 import time
 
 import numpy as np
+import pandas as pd
 import psutil
 import ray
 from tqdm import tqdm
@@ -32,21 +33,22 @@ class DSSWorker:
         self.profiles = profiles
         self.extra_unit_request = extra_unit_request
 
-        self._setup()
+        self._initialize_worker_dirs()
+        self._setup_circuit()
 
-    def _setup(self):
+    def _initialize_worker_dirs(self):
+        """Initialize working directories & env vars"""
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         remove_json_files()
         setup_env_vars(self.input_dss_worker.env_vars)
         os.chdir(self.input_dss_worker.basedir)
+
+    def _setup_circuit(self):
+        """Set up circuit in opendss"""
         self.dss.Command("Clear")
         self.dss.Command(f'Compile "{self.input_dss_worker.temp_file}"')
         self.buses = self.dss.Circuit.AllBusNames() or []
 
-        self._add_extra_units()
-        self._initialize_component_cache()
-
-    def _add_extra_units(self):
         """Add extra PV systems and storage units to the circuit for testing"""
         for i in range(self.extra_unit_request.number_of_pvs):
             seed = self.extra_unit_request.seed_number + i + 1
@@ -71,7 +73,6 @@ class DSSWorker:
 
         self.storage_kva = self.extra_unit_request.storage_kva
 
-    def _initialize_component_cache(self):
         """Cache circuit components for faster access"""
         self.loads = [l for l in self.dss.Loads.AllNames() or [] if "Storage" not in l]
         self.lines = self.dss.Lines.AllNames() or []
@@ -115,7 +116,7 @@ class DSSWorker:
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Set load and PV shape multipliers based on profiles"""
 
-        def set_shapes(shapes, profile_data):
+        def __set_shapes(shapes: list, profile_data: pd.DataFrame):
             for i, shape in enumerate(shapes):
                 col = profile_data.columns[i % len(profile_data.columns)]
                 multiplier = profile_data.iloc[0][col]
@@ -131,23 +132,23 @@ class DSSWorker:
             logger.warning(f"No profile data for {curr_datetime}")
             return
 
-        set_shapes(self.loadshapes, load_p)
-        set_shapes(self.pvloadshapes, pv)
+        __set_shapes(self.loadshapes, load_p)
+        __set_shapes(self.pvloadshapes, pv)
 
     def _extract_load_pv_powers(self):
         """Sum powers of loads and PV systems"""
+
+        def __extract_power(powers):
+            return sum(powers[::2]), sum(powers[1::2])
+
         Δp = Δq = 0.0
         for name, elements in [("Load", self.loads), ("PVSystem", self.pvsystems)]:
             for el in elements:
                 self.dss.Circuit.SetActiveElement(f"{name}.{el}")
-                dp, dq = self.__extract_power(self.dss.CktElement.Powers())
+                dp, dq = __extract_power(self.dss.CktElement.Powers())
                 Δp += dp
                 Δq += dq
         return Δp, Δq
-
-    @staticmethod
-    def __extract_power(powers):
-        return sum(powers[::2]), sum(powers[1::2])
 
     def _update_freq(self, freq: float, Δp: float):
         """Frequency update based on droop and storage capacity"""
@@ -182,7 +183,7 @@ class DSSWorker:
             "frequency": freq,
             "frequencies": freqs,
             "losses": self.dss.Circuit.Losses(),
-            "voltages": self.__get_voltages(),
+            "voltages": {bus: self.dss.Bus.Voltages() for bus in self.buses},
             "lines": self.__get_dict_data("line"),
             "loads": self.__get_dict_data("load"),
             "generators": self.__get_dict_data("generator"),
@@ -207,9 +208,6 @@ class DSSWorker:
             }
         return results
 
-    def __get_voltages(self) -> dict:
-        return {bus: self.dss.Bus.Voltages() for bus in self.buses}
-
 
 def run_daily_powerflow(
     profiles: ProfileData,
@@ -230,17 +228,16 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
+    input_dss_worker = InputDSSWorker(basedir, temp_file, env_vars)
+
+    workers = [
+        DSSWorker.remote(input_dss_worker, profiles, extra_unit_request)
+        for _ in range(cpu_count - 1)
+    ]
 
     total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
     logger.info(f"Total runs: {total_runs}")
     run_iter = iter(range(total_runs))
-
-    workers = [
-        DSSWorker.remote(
-            InputDSSWorker(basedir, temp_file, env_vars), profiles, extra_unit_request
-        )
-        for _ in range(cpu_count - 1)
-    ]
 
     futures = []
     # assign first batch
