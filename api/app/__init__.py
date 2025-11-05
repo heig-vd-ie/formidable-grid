@@ -3,7 +3,7 @@ from app.helpers import setup_and_run_circuit, setup_circuit
 from app.plotter import create_qsts_plots, plot_grid_topology, plot_monitor_results
 from extract_data.profile_reader import ProfileReader
 from extract_data.sql_extract import HEIGVDCHMeteoDB
-from config import settings
+from common.konfig import settings
 import sqlalchemy
 
 

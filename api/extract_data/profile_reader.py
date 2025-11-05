@@ -3,7 +3,7 @@ from pathlib import Path
 from dataclasses import dataclass
 import pandas as pd
 from common.setup_log import setup_logger
-from config import settings
+from common.konfig import settings
 
 logger = setup_logger(__name__)
 

@@ -283,7 +283,7 @@ class DSSWorker:
 
 
 def run_daily_powerflow(
-    extra_unit_request: RunDailyExampleRequest,
+    extra_unit_request: RunDailyExampleRequest = RunDailyExampleRequest(),
     dss_filename: str = "Run_QSTS.dss",
     from_datetime: datetime = datetime(2025, 1, 1),
     to_datetime: datetime = datetime(2025, 1, 2),
