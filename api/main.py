@@ -51,6 +51,11 @@ def recreate_profile_data():
     return {"status": "Profile data recreated successfully"}
 
 
+@app.patch("/get-profile-data")
+def get_profile_data():
+    return ProfileReader().process_and_record_profiles().get_profiles()
+
+
 @app.get("/run-daily-example")
 def run_daily_example(
     from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
@@ -68,8 +73,10 @@ def run_daily_example(
     else:
         logger.info("Ray is already initialized")
 
+    profiles = get_profile_data()
+
     run_daily_powerflow(
-        profiles=ProfileReader().process_and_record_profiles().get_profiles(),
+        profiles=profiles,
         from_datetime=from_datetime,
         to_datetime=to_datetime,
         extra_unit_request=config,
