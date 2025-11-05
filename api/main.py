@@ -3,12 +3,22 @@ from fastapi import FastAPI, Depends
 import ray
 from ray._private.worker import BaseContext
 from datetime import datetime
-from app.dss_worker import ray_init, ray_shutdown, read_results, run_daily_powerflow
-from app.plotter import create_qsts_plots
-from app import _recreate_profile_data
-from common.models import RunDailyExampleRequest
+
+from app import (
+    _recreate_profile_data,
+    ray_init,
+    ray_shutdown,
+    read_results,
+    run_daily_powerflow,
+    ExtraUnitRequest,
+    create_qsts_plots,
+)
+from common.setup_log import setup_logger
+from extract_data.profile_reader import ProfileReader
 
 app = FastAPI()
+
+logger = setup_logger(__name__)
 
 
 @app.get("/ray-init")
@@ -41,25 +51,35 @@ def recreate_profile_data():
     return {"status": "Profile data recreated successfully"}
 
 
+@app.patch("/get-profile-data")
+def get_profile_data():
+    return ProfileReader().process_and_record_profiles().get_profiles()
+
+
 @app.get("/run-daily-example")
 def run_daily_example(
     from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
     to_datetime: datetime = datetime(2025, 1, 2, 0, 0, 0),
-    config: RunDailyExampleRequest = Depends(RunDailyExampleRequest),
+    config: ExtraUnitRequest = Depends(ExtraUnitRequest),
 ):
     if isinstance(from_datetime, str):
         from_datetime = datetime.fromisoformat(from_datetime)
     if isinstance(to_datetime, str):
         to_datetime = datetime.fromisoformat(to_datetime)
 
+    if not ray.is_initialized():
+        ray_init()
+        logger.info("Ray was not initialized, initializing now...")
+    else:
+        logger.info("Ray is already initialized")
+
+    profiles = get_profile_data()
+
     run_daily_powerflow(
+        profiles=profiles,
         from_datetime=from_datetime,
         to_datetime=to_datetime,
-        number_of_pvs=config.number_of_pvs,
-        pv_kva=config.pv_kva,
-        storage_kva=config.storage_kva,
-        gfmi_percentage=config.gfmi_percentage,
-        seed_number=config.seed_number,
+        extra_unit_request=config,
     )
     df = read_results()
     create_qsts_plots(df)
@@ -71,5 +91,5 @@ def run_daily_example(
         }
     else:
         return_result = {"status": "Failed to read results or no data found"}, 500
-
+    ray_shutdown()
     return return_result

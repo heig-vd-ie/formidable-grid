@@ -1,21 +1,14 @@
 import os
 from pathlib import Path
-from dataclasses import dataclass
 import pandas as pd
 from common.setup_log import setup_logger
-from config import settings
+from common.models import ProfileData
+from common.konfig import settings
 
 logger = setup_logger(__name__)
 
 HEAD_NUMBER = int(1e4)
 MONTHTIME_FORMAT = "%m-%d %H:%M:%S"
-
-
-@dataclass
-class ProfileData:
-    pv: pd.DataFrame
-    load_p: pd.DataFrame
-    load_q: pd.DataFrame
 
 
 class ProfileReader:
