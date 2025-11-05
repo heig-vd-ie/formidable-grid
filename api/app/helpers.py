@@ -7,7 +7,7 @@ import math
 from opendssdirect import dss
 import pandas as pd
 
-from app.models import SimulationResponse
+from common.models import SimulationResponse
 from common.konfig import OUTPUT_FOLDER
 from common.setup_log import setup_logger
 

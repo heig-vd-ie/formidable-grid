@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import pandas as pd
 from pydantic import BaseModel
 from pathlib import Path
 
@@ -49,3 +50,10 @@ class InputDSSWorker:
     basedir: str
     temp_file: Path
     env_vars: dict
+
+
+@dataclass
+class ProfileData:
+    pv: pd.DataFrame
+    load_p: pd.DataFrame
+    load_q: pd.DataFrame

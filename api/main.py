@@ -14,6 +14,7 @@ from app import (
     create_qsts_plots,
 )
 from common.setup_log import setup_logger
+from extract_data.profile_reader import ProfileReader
 
 app = FastAPI()
 
@@ -68,6 +69,7 @@ def run_daily_example(
         logger.info("Ray is already initialized")
 
     run_daily_powerflow(
+        profiles=ProfileReader().process_and_record_profiles().get_profiles(),
         from_datetime=from_datetime,
         to_datetime=to_datetime,
         extra_unit_request=config,

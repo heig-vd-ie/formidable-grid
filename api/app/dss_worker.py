@@ -9,11 +9,10 @@ import psutil
 import ray
 from tqdm import tqdm
 
-from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import clean_nans, remove_json_files, setup_circuit, setup_env_vars
-from app.models import ExtraUnitRequest, InputDSSWorker
-from common.konfig import *
+from common.models import ExtraUnitRequest, InputDSSWorker, ProfileData
 from common.setup_log import setup_logger
+from common.konfig import *
 
 logger = setup_logger(__name__)
 
@@ -213,6 +212,7 @@ class DSSWorker:
 
 
 def run_daily_powerflow(
+    profiles: ProfileData,
     extra_unit_request: ExtraUnitRequest = ExtraUnitRequest(),
     dss_filename: str = "Run_QSTS.dss",
     from_datetime: datetime = datetime(2025, 1, 1),
@@ -230,7 +230,6 @@ def run_daily_powerflow(
     }
 
     temp_file = setup_circuit(dss_filename)
-    profiles = ProfileReader().process_and_record_profiles().get_profiles()
 
     total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
     logger.info(f"Total runs: {total_runs}")
