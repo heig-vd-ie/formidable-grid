@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import clean_nans, setup_circuit
-from app.models import RunDailyExampleRequest, InputDSSWorker
+from app.models import ExtraUnitRequest, InputDSSWorker
 from common.konfig import *
 from common.setup_log import setup_logger
 
@@ -26,7 +26,7 @@ class DSSWorker:
         self,
         input_dss_worker: InputDSSWorker,
         profiles: ProfileData,
-        extra_unit_request: RunDailyExampleRequest,
+        extra_unit_request: ExtraUnitRequest,
     ):
         from opendssdirect import dss
 
@@ -80,7 +80,7 @@ class DSSWorker:
             v for v in self.dss.Vsources.AllNames() or [] if "fictive" in v
         ]
 
-    def _add_extra_units(self, extra_unit_request: RunDailyExampleRequest):
+    def _add_extra_units(self, extra_unit_request: ExtraUnitRequest):
         """Add extra PV systems and storage units to the circuit for testing"""
         for i in range(extra_unit_request.number_of_pvs):
             random.seed(seed_number := extra_unit_request.seed_number + 1)
@@ -253,7 +253,7 @@ class DSSWorker:
 
 
 def run_daily_powerflow(
-    extra_unit_request: RunDailyExampleRequest = RunDailyExampleRequest(),
+    extra_unit_request: ExtraUnitRequest = ExtraUnitRequest(),
     dss_filename: str = "Run_QSTS.dss",
     from_datetime: datetime = datetime(2025, 1, 1),
     to_datetime: datetime = datetime(2025, 1, 2),

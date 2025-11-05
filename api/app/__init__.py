@@ -6,7 +6,7 @@ from app.dss_worker import run_daily_powerflow
 from app.helpers import read_results
 from app.plotter import create_qsts_plots
 from app.ray_handler import ray_init, ray_shutdown
-from app.models import RunDailyExampleRequest
+from app.models import ExtraUnitRequest
 
 import sqlalchemy
 
@@ -26,7 +26,7 @@ __all__ = [
     "HEIGVDCHMeteoDB",
     "settings",
     "read_results",
-    "RunDailyExampleRequest",
+    "ExtraUnitRequest",
     "run_daily_powerflow",
     "_recreate_profile_data",
 ]

@@ -10,7 +10,7 @@ from app import (
     ray_shutdown,
     read_results,
     run_daily_powerflow,
-    RunDailyExampleRequest,
+    ExtraUnitRequest,
     create_qsts_plots,
 )
 from common.setup_log import setup_logger
@@ -54,7 +54,7 @@ def recreate_profile_data():
 def run_daily_example(
     from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
     to_datetime: datetime = datetime(2025, 1, 2, 0, 0, 0),
-    config: RunDailyExampleRequest = Depends(RunDailyExampleRequest),
+    config: ExtraUnitRequest = Depends(ExtraUnitRequest),
 ):
     if isinstance(from_datetime, str):
         from_datetime = datetime.fromisoformat(from_datetime)
