@@ -1,5 +1,6 @@
-import numpy as np
+from dataclasses import dataclass
 from pydantic import BaseModel
+from pathlib import Path
 
 
 class PowerFlowResponse(BaseModel):
@@ -33,3 +34,18 @@ def tuple_to_powerflow(power_tuple: list[float]) -> list[float]:
         power_tuple[3],
         power_tuple[5],
     ]
+
+
+class RunDailyExampleRequest(BaseModel):
+    number_of_pvs: int = 5
+    pv_kva: float = 10.0
+    storage_kva: float = 20.0
+    gfmi_percentage: float = 0.5
+    seed_number: int = 42
+
+
+@dataclass
+class InputDSSWorker:
+    basedir: str
+    temp_file: Path
+    env_vars: dict

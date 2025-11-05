@@ -13,7 +13,8 @@ from tqdm import tqdm
 
 from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import clean_nans, setup_circuit
-from app.models import SimulationResponse
+from app.models import RunDailyExampleRequest, SimulationResponse, InputDSSWorker
+from app.ray_handler import ray_init, ray_shutdown
 from common.konfig import (
     MAX_CPU_COUNT,
     MAX_ITERATION,
@@ -24,32 +25,9 @@ from common.konfig import (
 )
 from common.setup_log import setup_logger
 from pathlib import Path
-from dataclasses import dataclass
+
 
 logger = setup_logger(__name__)
-
-SERVER_RAY_ADDRESS = os.getenv("SERVER_RAY_ADDRESS", None)
-
-
-def ray_init():
-    logger.info(f"Initializing Ray with address: {SERVER_RAY_ADDRESS}")
-    return ray.init(
-        address=SERVER_RAY_ADDRESS,
-        runtime_env={
-            "working_dir": str(Path(__file__).parent.parent.resolve()),
-        },
-    )
-
-
-def ray_shutdown():
-    ray.shutdown()
-
-
-@dataclass
-class InputDSSWorker:
-    basedir: str
-    temp_file: Path
-    env_vars: dict
 
 
 @ray.remote
@@ -58,19 +36,19 @@ class DSSWorker:
         self,
         input_dss_worker: InputDSSWorker,
         profiles: ProfileData,
-        **kwargs,
+        extra_unit_request: RunDailyExampleRequest,
     ):
         from opendssdirect import dss
 
         self.input_dss_worker = input_dss_worker
         self.dss = dss
         self.profiles = profiles
-        self._remove_json_files()
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        self._remove_json_files()
         self.__init_dir(input_dss_worker.env_vars)
         self._initialize_circuit(input_dss_worker.temp_file)
         self.buses = self.dss.Circuit.AllBusNames() or []
-        self._add_extra_units(**kwargs)
+        self._add_extra_units(extra_unit_request=extra_unit_request)
         self.__init_components()
 
     def __init_dir(self, env_vars: dict):
@@ -80,16 +58,15 @@ class DSSWorker:
 
     def _remove_json_files(self):
         """Remove all JSON files from the output directory"""
-        if os.path.exists(OUTPUT_FOLDER):
-            for filename in os.listdir(OUTPUT_FOLDER):
-                file_path = os.path.join(OUTPUT_FOLDER, filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                except Exception as e:
-                    logger.warning(f"Failed to delete {file_path}. Reason: {e}")
+        for filename in os.listdir(OUTPUT_FOLDER):
+            file_path = os.path.join(OUTPUT_FOLDER, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete {file_path}. Reason: {e}")
 
     def __init_components(self):
         """Initialize component lists from the OpenDSS circuit"""
@@ -122,23 +99,18 @@ class DSSWorker:
         random.seed(seed_number)
         np.random.seed(seed_number)
 
-    def _add_extra_units(
-        self,
-        number_of_pvs: int = 1,
-        pv_kva: float = 1.0,
-        storage_kva: float = 1.0,
-        gfmi_percentage: float = 20.0,
-        seed_number: int = 144,
-    ):
+    def _add_extra_units(self, extra_unit_request: RunDailyExampleRequest):
         """Add extra PV systems and storage units to the circuit for testing"""
-        for i in range(number_of_pvs):
-            self._change_seed(seed_number + i)
+        for i in range(extra_unit_request.number_of_pvs):
+            self._change_seed(extra_unit_request.seed_number + i)
             bus_name = random.choice(self.buses)
             pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
-            self._add_pv_systems(i, bus_name, pv_kva, pv_shape)
-            if random.random() < gfmi_percentage:  # is it grid-forming?
-                self._add_storage_units(i, bus_name, storage_kva)
-        self.storage_kva = storage_kva
+            self._add_pv_systems(i, bus_name, extra_unit_request.pv_kva, pv_shape)
+            if (
+                random.random() < extra_unit_request.gfmi_percentage
+            ):  # is it grid-forming?
+                self._add_storage_units(i, bus_name, extra_unit_request.storage_kva)
+        self.storage_kva = extra_unit_request.storage_kva
         self.__init_components()
 
     def _add_pv_systems(
@@ -311,10 +283,10 @@ class DSSWorker:
 
 
 def run_daily_powerflow(
+    extra_unit_request: RunDailyExampleRequest,
     dss_filename: str = "Run_QSTS.dss",
     from_datetime: datetime = datetime(2025, 1, 1),
     to_datetime: datetime = datetime(2025, 1, 2),
-    **kwargs,
 ):
     """
     Run power flow analysis for each hour of a day using Ray for parallel execution
@@ -350,7 +322,7 @@ def run_daily_powerflow(
                 env_vars=env_vars,
             ),
             profiles,
-            **kwargs,
+            extra_unit_request,
         )
         for _ in range(cpu_count - 1)
     ]

@@ -6,7 +6,7 @@ from datetime import datetime
 from app.dss_worker import ray_init, ray_shutdown, read_results, run_daily_powerflow
 from app.plotter import create_qsts_plots
 from app import _recreate_profile_data
-from common.models import RunDailyExampleRequest
+from app.models import RunDailyExampleRequest
 
 app = FastAPI()
 
@@ -55,11 +55,7 @@ def run_daily_example(
     run_daily_powerflow(
         from_datetime=from_datetime,
         to_datetime=to_datetime,
-        number_of_pvs=config.number_of_pvs,
-        pv_kva=config.pv_kva,
-        storage_kva=config.storage_kva,
-        gfmi_percentage=config.gfmi_percentage,
-        seed_number=config.seed_number,
+        extra_unit_request=config,
     )
     df = read_results()
     create_qsts_plots(df)
