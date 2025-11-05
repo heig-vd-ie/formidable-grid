@@ -4,6 +4,7 @@ from pathlib import Path
 import shutil
 import tempfile
 import math
+from typing import Dict, List, Union
 from opendssdirect import dss
 import pandas as pd
 
@@ -14,7 +15,7 @@ from common.setup_log import setup_logger
 logger = setup_logger(__name__)
 
 
-def clean_nans(obj):
+def clean_nans(obj: Union[Dict, List, float]) -> Union[Dict, List, float, None]:
     """Recursively replace NaN/Inf with None in nested lists/dicts."""
     if isinstance(obj, dict):
         return {k: clean_nans(v) for k, v in obj.items()}
@@ -68,23 +69,20 @@ def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
     return Path(temp_dss_file_path)
 
 
-def setup_circuit(dss_filename: str):
+def setup_circuit(dss_filename: str) -> Path:
     filepath = Path(os.getenv("INTERNAL_DSSFILES_FOLDER", "")) / dss_filename
     temp_file = replace_env_vars_in_dss(filepath)
     return temp_file
 
 
-def setup_and_run_circuit(dss_filename: str):
-    filepath = Path(os.getenv("INTERNAL_DSSFILES_FOLDER", "")) / dss_filename
-    temp_file = replace_env_vars_in_dss(filepath)
-    dss.Command("Clear")
-    dss.Command(f'Redirect "{temp_file}"')
-    os.remove(temp_file)
-    logger.info(f"Temp file {temp_file} removed.")
-    return dss
-
-
-def _save_and_summarize_results(results: list[SimulationResponse]) -> pd.DataFrame:
+def read_results():
+    """Read all JSON result files and return as a list of dictionaries"""
+    results = []
+    for file in os.listdir(OUTPUT_FOLDER):
+        if file.endswith(".json"):
+            with open(os.path.join(OUTPUT_FOLDER, file), "r") as f:
+                data = json.load(f)
+                results.append(data)
     """Save results to CSV and print summary statistics"""
     # Convert to DataFrame
     df = pd.DataFrame(
@@ -97,14 +95,3 @@ def _save_and_summarize_results(results: list[SimulationResponse]) -> pd.DataFra
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
     return df
-
-
-def read_results():
-    """Read all JSON result files and return as a list of dictionaries"""
-    results = []
-    for file in os.listdir(OUTPUT_FOLDER):
-        if file.endswith(".json"):
-            with open(os.path.join(OUTPUT_FOLDER, file), "r") as f:
-                data = json.load(f)
-                results.append(data)
-    return _save_and_summarize_results(results)
