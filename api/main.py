@@ -3,12 +3,21 @@ from fastapi import FastAPI, Depends
 import ray
 from ray._private.worker import BaseContext
 from datetime import datetime
-from app.dss_worker import ray_init, ray_shutdown, read_results, run_daily_powerflow
-from app.plotter import create_qsts_plots
-from app import _recreate_profile_data
-from app.models import RunDailyExampleRequest
+
+from app import (
+    _recreate_profile_data,
+    ray_init,
+    ray_shutdown,
+    read_results,
+    run_daily_powerflow,
+    RunDailyExampleRequest,
+    create_qsts_plots,
+)
+from common.setup_log import setup_logger
 
 app = FastAPI()
+
+logger = setup_logger(__name__)
 
 
 @app.get("/ray-init")
@@ -52,6 +61,12 @@ def run_daily_example(
     if isinstance(to_datetime, str):
         to_datetime = datetime.fromisoformat(to_datetime)
 
+    if not ray.is_initialized():
+        ray_init()
+        logger.info("Ray was not initialized, initializing now...")
+    else:
+        logger.info("Ray is already initialized")
+
     run_daily_powerflow(
         from_datetime=from_datetime,
         to_datetime=to_datetime,
@@ -67,5 +82,5 @@ def run_daily_example(
         }
     else:
         return_result = {"status": "Failed to read results or no data found"}, 500
-
+    ray_shutdown()
     return return_result

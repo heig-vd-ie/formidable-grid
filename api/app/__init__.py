@@ -1,9 +1,13 @@
-from app.dss_worker import DSSWorker, read_results, run_daily_powerflow
-from app.helpers import setup_and_run_circuit, setup_circuit
-from app.plotter import create_qsts_plots, plot_grid_topology, plot_monitor_results
 from extract_data.profile_reader import ProfileReader
 from extract_data.sql_extract import HEIGVDCHMeteoDB
 from common.konfig import settings
+
+from app.dss_worker import run_daily_powerflow
+from app.helpers import read_results
+from app.plotter import create_qsts_plots
+from app.ray_handler import ray_init, ray_shutdown
+from app.models import RunDailyExampleRequest
+
 import sqlalchemy
 
 
@@ -16,15 +20,13 @@ def _recreate_profile_data():
 
 __all__ = [
     "create_qsts_plots",
-    "setup_circuit",
+    "ray_init",
+    "ray_shutdown",
     "ProfileReader",
     "HEIGVDCHMeteoDB",
     "settings",
     "read_results",
-    "DSSWorker",
-    "setup_and_run_circuit",
-    "plot_grid_topology",
-    "plot_monitor_results",
+    "RunDailyExampleRequest",
     "run_daily_powerflow",
     "_recreate_profile_data",
 ]

@@ -6,25 +6,15 @@ import shutil
 import time
 
 import numpy as np
-import pandas as pd
 import psutil
 import ray
 from tqdm import tqdm
 
 from extract_data.profile_reader import ProfileData, ProfileReader
 from app.helpers import clean_nans, setup_circuit
-from app.models import RunDailyExampleRequest, SimulationResponse, InputDSSWorker
-from app.ray_handler import ray_init, ray_shutdown
-from common.konfig import (
-    MAX_CPU_COUNT,
-    MAX_ITERATION,
-    NOMINAL_FREQUENCY,
-    OUTPUT_FOLDER,
-    SMALL_NUMBER,
-    NOMINAL_DROOP,
-)
+from app.models import RunDailyExampleRequest, InputDSSWorker
+from common.konfig import *
 from common.setup_log import setup_logger
-from pathlib import Path
 
 
 logger = setup_logger(__name__)
@@ -46,7 +36,9 @@ class DSSWorker:
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
         self._remove_json_files()
         self.__init_dir(input_dss_worker.env_vars)
-        self._initialize_circuit(input_dss_worker.temp_file)
+        os.chdir(self.input_dss_worker.basedir)
+        self.dss.Command("Clear")
+        self.dss.Command(f'Compile "{input_dss_worker.temp_file.__str__()}"')
         self.buses = self.dss.Circuit.AllBusNames() or []
         self._add_extra_units(extra_unit_request=extra_unit_request)
         self.__init_components()
@@ -54,7 +46,6 @@ class DSSWorker:
     def __init_dir(self, env_vars: dict):
         for key, value in env_vars.items():
             os.environ[key] = value
-        os.chdir(self.input_dss_worker.basedir)
 
     def _remove_json_files(self):
         """Remove all JSON files from the output directory"""
@@ -89,50 +80,29 @@ class DSSWorker:
             v for v in self.dss.Vsources.AllNames() or [] if "fictive" in v
         ]
 
-    def _initialize_circuit(self, temp_file: Path):
-        """Initialize the OpenDSS circuit from the given .dss file"""
-        self.dss.Command("Clear")
-        self.dss.Command(f'Compile "{temp_file.__str__()}"')
-
-    def _change_seed(self, seed_number: int | None):
-        """Change the random seed for reproducibility"""
-        random.seed(seed_number)
-        np.random.seed(seed_number)
-
     def _add_extra_units(self, extra_unit_request: RunDailyExampleRequest):
         """Add extra PV systems and storage units to the circuit for testing"""
         for i in range(extra_unit_request.number_of_pvs):
-            self._change_seed(extra_unit_request.seed_number + i)
+            random.seed(seed_number := extra_unit_request.seed_number + 1)
+            np.random.seed(seed_number)
             bus_name = random.choice(self.buses)
             pv_shape = "pvshape" + str((i % 5) + 1)  # Cycle through pvshape1-5
-            self._add_pv_systems(i, bus_name, extra_unit_request.pv_kva, pv_shape)
+            self.dss.Command(
+                f'New "PVSystem.PV{i+1}" Phases=3 conn=delta '
+                f"Bus1={bus_name} kV=4.16 pmpp=100 "
+                f"daily={pv_shape} kVA={extra_unit_request.pv_kva} "
+                f"%X=50 kP=0.3 KVDC=0.700 PITol=0.1"
+            )
             if (
                 random.random() < extra_unit_request.gfmi_percentage
             ):  # is it grid-forming?
-                self._add_storage_units(i, bus_name, extra_unit_request.storage_kva)
+                self.dss.Command(
+                    f'New "Storage.Storage{i+1}" Phases=3 conn=wye '
+                    f"Bus1={bus_name} kV=4.16 kWrated={extra_unit_request.storage_kva} "
+                    f"kWhrated={extra_unit_request.storage_kva*4000}"
+                )
         self.storage_kva = extra_unit_request.storage_kva
         self.__init_components()
-
-    def _add_pv_systems(
-        self,
-        i: int,
-        bus_name: str,
-        pv_capacity_kva: float,
-        pv_shape: str,
-    ):
-        self.dss.Command(
-            f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} kV=4.16 pmpp=100 daily={pv_shape} kVA={pv_capacity_kva} %X=50 kP=0.3 KVDC=0.700 PITol=0.1'
-        )
-
-    def _add_storage_units(
-        self,
-        i: int,
-        bus_name: str,
-        storage_kva: float,
-    ):
-        self.dss.Command(
-            f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} kV=4.16 kWrated={storage_kva} kWhrated={storage_kva*4000}'
-        )
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Randomly set load shape multipliers for all load shapes"""
@@ -294,12 +264,6 @@ def run_daily_powerflow(
     cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
     logger.info(f"System has {cpu_count} CPU cores available")
 
-    if not ray.is_initialized():
-        ray_init()
-        logger.info("Ray was not initialized, initializing now...")
-    else:
-        logger.info("Ray is already initialized")
-
     basedir = os.getcwd()
     env_vars = {
         "INTERNAL_DSSFILES_FOLDER": os.environ.get("INTERNAL_DSSFILES_FOLDER", ""),
@@ -375,30 +339,3 @@ def run_daily_powerflow(
                 break
     pbar.close()
     os.remove(temp_file)
-
-
-def read_results():
-    """Read all JSON result files and return as a list of dictionaries"""
-    results = []
-    for file in os.listdir(OUTPUT_FOLDER):
-        if file.endswith(".json"):
-            with open(os.path.join(OUTPUT_FOLDER, file), "r") as f:
-                data = json.load(f)
-                results.append(data)
-    return _save_and_summarize_results(results)
-
-
-def _save_and_summarize_results(results: list[SimulationResponse]) -> pd.DataFrame:
-    """Save results to CSV and print summary statistics"""
-    # Convert to DataFrame
-    df = pd.DataFrame(
-        [r.__dict__ if hasattr(r, "__dict__") else dict(r) for r in results]
-    )
-    # Sort by datetime to ensure proper order
-    df = df.sort_values("timestamp").reset_index(drop=True)
-    # Performance summary
-    avg_solve_time = df["solve_time_ms"].mean()
-    logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
-    logger.info(f"Speedup achieved through parallelization!")
-    ray_shutdown()
-    return df

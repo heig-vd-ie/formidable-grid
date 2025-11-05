@@ -2,7 +2,7 @@ import datetime
 from unittest.mock import patch
 
 
-from app.dss_worker import read_results, run_daily_powerflow
+from app import read_results, run_daily_powerflow
 
 
 class TestDailyExample:
