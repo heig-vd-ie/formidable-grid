@@ -1,6 +1,7 @@
 import json
 import os
 from pathlib import Path
+import shutil
 import tempfile
 import math
 from opendssdirect import dss
@@ -26,6 +27,24 @@ def clean_nans(obj):
             return obj
     else:
         return obj
+
+
+def setup_env_vars(env_vars: dict):
+    for key, value in env_vars.items():
+        os.environ[key] = value
+
+
+def remove_json_files():
+    """Remove all JSON files from the output directory"""
+    for filename in os.listdir(OUTPUT_FOLDER):
+        file_path = os.path.join(OUTPUT_FOLDER, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            logger.warning(f"Failed to delete {file_path}. Reason: {e}")
 
 
 def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
