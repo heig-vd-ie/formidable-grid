@@ -59,9 +59,9 @@ class DSSWorker:
             pv_shape = f"pvshape{(i % 5) + 1}"
 
             self.dss.Command(
-                f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} '
-                f"kV=4.16 pmpp=100 daily={pv_shape} kVA={self.extra_unit_request.pv_kva} "
-                f"%X=50 kP=0.3 KVDC=0.700 PITol=0.1"
+                f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} %Cutin=0 %Cutout=0 '
+                f"kV=4.16 pmpp={self.extra_unit_request.pv_kva} daily={pv_shape} "
+                f"kVA={self.extra_unit_request.pv_kva * 1.1} %X=50 kP=0.3 KVDC=0.700 PITol=0.1"
             )
 
             if random.random() < self.extra_unit_request.gfmi_percentage:
@@ -97,20 +97,17 @@ class DSSWorker:
         start = time.time()
         self._set_load_shape_multipliers(curr_datetime)
         self.dss.run_command("Solve")
-
-        Δp, Δq = self._extract_load_pv_powers()
         freqs = [NOMINAL_FREQUENCY]
-        freq = NOMINAL_FREQUENCY
+        Δp, Δq = self._extract_load_n_pv_powers()
 
         for _ in range(MAX_ITERATION):
-            freq = self._update_freq(freq, Δp)
             self._set_power_storages(Δp, Δq)
             self.dss.run_command("Solve")
-            freqs.append(freq)
-            if abs(freq - freqs[-2]) / NOMINAL_FREQUENCY < SMALL_NUMBER:
+            freqs.append(self._update_freq(Δp))
+            if abs(freqs[-1] - freqs[-2]) / NOMINAL_FREQUENCY < SMALL_NUMBER:
                 break
 
-        self._dump_results(time.time() - start, curr_datetime, freq, freqs)
+        self._dump_results(time.time() - start, curr_datetime, freqs)
         return None
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
@@ -135,22 +132,20 @@ class DSSWorker:
         __set_shapes(self.loadshapes, load_p)
         __set_shapes(self.pvloadshapes, pv)
 
-    def _extract_load_pv_powers(self):
+    def _extract_load_n_pv_powers(self):
         """Sum powers of loads and PV systems"""
 
-        def __extract_power(powers):
-            return sum(powers[::2]), sum(powers[1::2])
+        def __extract_power(powers, Δp, Δq):
+            return Δp + sum(powers[::2]), Δq + sum(powers[1::2])
 
         Δp = Δq = 0.0
         for name, elements in [("Load", self.loads), ("PVSystem", self.pvsystems)]:
             for el in elements:
                 self.dss.Circuit.SetActiveElement(f"{name}.{el}")
-                dp, dq = __extract_power(self.dss.CktElement.Powers())
-                Δp += dp
-                Δq += dq
+                Δp, Δq = __extract_power(self.dss.CktElement.Powers(), Δp, Δq)
         return Δp, Δq
 
-    def _update_freq(self, freq: float, Δp: float):
+    def _update_freq(self, Δp: float):
         """Frequency update based on droop and storage capacity"""
         Δf = (
             -Δp
@@ -158,21 +153,18 @@ class DSSWorker:
             * NOMINAL_DROOP
             / (len(self.storages) * self.storage_kva)
         )
-        return freq + Δf
+        return NOMINAL_FREQUENCY + Δf
 
     def _set_power_storages(self, Δp: float, Δq: float):
         for storage in self.storages:
             self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
-            mult_p = Δp * 3 / (self.storage_kva * len(self.storages))
-            self.dss.run_command(
-                f"Edit LoadShape.{storage}Shape npts=1 mult=[{mult_p}]"
-            )
+            set_point = Δp * 3 / len(self.storages)
+            self.dss.run_command(f"Edit Storage.{storage} kW={set_point}")
 
     def _dump_results(
         self,
         delta_time: float,
         curr_datetime: datetime,
-        freq: float,
         freqs: list[float],
     ):
         timestamp = curr_datetime.strftime("%Y%m%d_%H%M%S")
@@ -180,7 +172,7 @@ class DSSWorker:
             "timestamp": curr_datetime.isoformat(),
             "solve_time_ms": delta_time,
             "converged": bool(self.dss.Solution.Converged()),
-            "frequency": freq,
+            "frequency": freqs[-1],
             "frequencies": freqs,
             "losses": self.dss.Circuit.Losses(),
             "voltages": {bus: self.dss.Bus.Voltages() for bus in self.buses},
