@@ -39,7 +39,6 @@ class DSSWorker:
     def _initialize_worker_dirs(self):
         """Initialize working directories & env vars"""
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        remove_json_files()
         setup_env_vars(self.input_dss_worker.env_vars)
         os.chdir(self.input_dss_worker.basedir)
 
@@ -94,6 +93,9 @@ class DSSWorker:
 
     def solve(self, curr_datetime: datetime):
         """Run power flow for a single timestep"""
+        import logging
+        import sys
+
         start = time.time()
         self._set_load_shape_multipliers(curr_datetime)
         self.dss.run_command("Solve")
@@ -108,6 +110,9 @@ class DSSWorker:
                 break
 
         self._dump_results(time.time() - start, curr_datetime, freqs)
+        sys.stdout.flush()
+        sys.stderr.flush()
+        logging.shutdown()
         return None
 
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
@@ -208,9 +213,7 @@ def run_daily_powerflow(
     from_datetime: datetime = datetime(2025, 1, 1),
     to_datetime: datetime = datetime(2025, 1, 2),
 ):
-
-    cpu_count = psutil.cpu_count() or MAX_CPU_COUNT
-    logger.info(f"{cpu_count} CPU cores available")
+    remove_json_files()
 
     basedir = os.getcwd()
     env_vars = {
@@ -222,53 +225,32 @@ def run_daily_powerflow(
     temp_file = setup_circuit(dss_filename)
     input_dss_worker = InputDSSWorker(basedir, temp_file, env_vars)
 
-    workers = [
-        DSSWorker.remote(input_dss_worker, profiles, extra_unit_request)
-        for _ in range(cpu_count - 1)
-    ]
+    max_parallel = max(1, (psutil.cpu_count() or MAX_CPU_COUNT) - 1)
+    logger.info(f"{max_parallel} CPU cores used")
 
     total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
     logger.info(f"Total runs: {total_runs}")
-    run_iter = iter(range(total_runs))
-
-    futures = []
-    # assign first batch
-    for worker in workers:
-        try:
-            run_idx = next(run_iter)
-            futures.append(
-                (
-                    worker,
-                    worker.solve.remote(
-                        from_datetime + timedelta(minutes=run_idx * 15)
-                    ),
-                )
-            )
-        except StopIteration:
-            break
+    timestamps = [from_datetime + timedelta(minutes=i * 15) for i in range(total_runs)]
 
     pbar = tqdm(total=total_runs, desc="Running Power Flows")
-    while futures:
-        done_ids, _ = ray.wait([f[1] for f in futures])
-        done_id = done_ids[0]
-        for i, (worker, future) in enumerate(futures):
-            if future == done_id:
-                try:
-                    ray.get(done_id)
-                except Exception as e:
-                    logger.error(f"Error in worker id {done_id}: {e}")
-                    ray.cancel(done_id)
-                pbar.update(1)
-                try:
-                    run_idx = next(run_iter)
-                    futures[i] = (
-                        worker,
-                        worker.solve.remote(
-                            from_datetime + timedelta(minutes=run_idx * 15)
-                        ),
-                    )
-                except StopIteration:
-                    futures.pop(i)
-                break
+
+    pending = list()
+    next_idx = 0
+
+    while next_idx < total_runs or pending:
+        # Launch new workers if below CPU limit
+        while len(pending) < max_parallel and next_idx < total_runs:
+            ts = timestamps[next_idx]
+            worker = DSSWorker.remote(input_dss_worker, profiles, extra_unit_request)
+            future = worker.solve.remote(ts)
+            pending.append(future)
+            next_idx += 1
+        done, pending = ray.wait(pending, num_returns=1)
+        done_id = done[0]
+        try:
+            ray.get(done_id)
+        except Exception as e:
+            logger.error(f"Worker failed at {timestamps[next_idx-1]}: {e}")
+        pbar.update(1)
     pbar.close()
     os.remove(temp_file)
