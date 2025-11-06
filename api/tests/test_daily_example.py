@@ -6,7 +6,7 @@ from main import get_profile_data
 
 
 class TestDailyExample:
-    @patch("app.dss_worker.MAX_ITERATION", 1)
+    @patch("app.dss_worker.worker.MAX_ITERATION", 1)
     def test_daily_example(self):
         profiles = get_profile_data()
         run_daily_powerflow(

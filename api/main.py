@@ -13,8 +13,8 @@ from app import (
     ExtraUnitRequest,
     create_qsts_plots,
 )
-from common.setup_log import setup_logger
-from extract_data.profile_reader import ProfileReader
+from app.common.setup_log import setup_logger
+from app.extract_data.profile_reader import ProfileReader
 
 app = FastAPI()
 

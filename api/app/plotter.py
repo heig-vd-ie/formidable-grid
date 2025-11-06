@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from common.setup_log import setup_logger
+from app.common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 

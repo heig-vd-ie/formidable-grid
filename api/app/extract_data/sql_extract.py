@@ -1,8 +1,8 @@
 import pandas as pd
 import sqlalchemy
-from common.setup_log import setup_logger
 from pathlib import Path
-from common.konfig import settings
+from app.common.setup_log import setup_logger
+from app.common.konfig import settings
 
 logger = setup_logger(__name__)
 

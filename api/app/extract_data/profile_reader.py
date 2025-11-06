@@ -1,9 +1,9 @@
 import os
 from pathlib import Path
 import pandas as pd
-from common.setup_log import setup_logger
-from common.models import ProfileData
-from common.konfig import settings
+from app.common.setup_log import setup_logger
+from app.common.models import ProfileData
+from app.common.konfig import settings
 
 logger = setup_logger(__name__)
 
@@ -14,10 +14,11 @@ MONTHTIME_FORMAT = "%m-%d %H:%M:%S"
 class ProfileReader:
     def __init__(self):
         self.INPUT_DATA_DIR = (
-            Path(__file__).parent.parent.parent / settings.profile_data.folder_path
+            Path(__file__).parent.parent.parent.parent
+            / settings.profile_data.folder_path
         )
         self.OUTPUT_DATA_DIR = (
-            Path(__file__).parent.parent.parent
+            Path(__file__).parent.parent.parent.parent
             / settings.profile_data.output_folder_path
         )
 
