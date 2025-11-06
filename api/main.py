@@ -1,20 +1,21 @@
 import datetime
-from fastapi import FastAPI, Depends
-import ray
-from ray._private.worker import BaseContext
 from datetime import datetime
 
+from fastapi import Depends, FastAPI
+from ray._private.worker import BaseContext
+
 from app import (
+    ExtraUnitRequest,
     _recreate_profile_data,
+    create_qsts_plots,
     ray_init,
     ray_shutdown,
     read_results,
     run_daily_powerflow,
-    ExtraUnitRequest,
-    create_qsts_plots,
 )
 from app.common.setup_log import setup_logger
 from app.extract_data.profile_reader import ProfileReader
+import ray
 
 app = FastAPI()
 

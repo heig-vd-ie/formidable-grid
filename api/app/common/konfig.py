@@ -1,7 +1,8 @@
-import os
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import cast
+
 from dynaconf import Dynaconf
 
 SECRET_KEY = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"

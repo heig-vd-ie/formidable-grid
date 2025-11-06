@@ -1,14 +1,13 @@
 import sqlalchemy
 
+from app.common.konfig import settings
+from app.common.models import ExtraUnitRequest
+from app.dss_worker.power_flow import run_daily_powerflow
+from app.dss_worker.ray_handler import ray_init, ray_shutdown
 from app.extract_data.profile_reader import ProfileReader
 from app.extract_data.sql_extract import HEIGVDCHMeteoDB
-from app.common.konfig import settings
-
-from app.dss_worker.power_flow import run_daily_powerflow
 from app.helpers import read_results
 from app.plotter import create_qsts_plots
-from app.dss_worker.ray_handler import ray_init, ray_shutdown
-from app.common.models import ExtraUnitRequest
 
 
 def _recreate_profile_data():

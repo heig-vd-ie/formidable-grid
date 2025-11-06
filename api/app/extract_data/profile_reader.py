@@ -1,9 +1,11 @@
 import os
 from pathlib import Path
+
 import pandas as pd
-from app.common.setup_log import setup_logger
-from app.common.models import ProfileData
+
 from app.common.konfig import settings
+from app.common.models import ProfileData
+from app.common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
 

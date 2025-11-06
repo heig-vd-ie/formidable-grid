@@ -1,7 +1,8 @@
 from dataclasses import dataclass
+from pathlib import Path
+
 import pandas as pd
 from pydantic import BaseModel
-from pathlib import Path
 
 
 class PowerFlowResponse(BaseModel):
