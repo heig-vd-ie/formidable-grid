@@ -8,7 +8,7 @@ from app.common.konfig import MAX_CPU_COUNT
 from app.common.models import ExtraUnitRequest, InputDSSWorker, ProfileData
 from app.common.setup_log import setup_logger
 from app.dss_worker.worker import DSSWorker
-from app.helpers import remove_json_files, setup_circuit
+from app.common.helpers import remove_json_files, setup_circuit
 import ray
 
 logger = setup_logger(__name__)

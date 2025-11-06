@@ -6,7 +6,6 @@ import shutil
 import tempfile
 from typing import Dict, List, Union
 
-from opendssdirect import dss
 import pandas as pd
 
 from app.common.konfig import OUTPUT_FOLDER
