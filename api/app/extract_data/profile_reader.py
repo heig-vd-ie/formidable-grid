@@ -248,7 +248,7 @@ class ProfileReader:
             self._record_profiles()
         return self
 
-    def get_profiles(self) -> ProfileData:
+    def read_profiles(self) -> ProfileData:
         """Load the processed profiles from Parquet files"""
         self.pv = pd.read_parquet(
             self.INPUT_DATA_DIR / settings.profile_data.processed_pv_profile_file

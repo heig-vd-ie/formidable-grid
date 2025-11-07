@@ -19,7 +19,7 @@ import ray
 logger = setup_logger(__name__)
 
 
-def run_daily_powerflow(
+def run_qsts_powerflow(
     profiles: ProfileData,
     extra_unit_request: ExtraUnitRequest = ExtraUnitRequest(),
     dss_filename: str = "Run_QSTS.dss",

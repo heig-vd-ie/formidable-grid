@@ -11,7 +11,7 @@ from app import (
     ray_init,
     ray_shutdown,
     read_results,
-    run_daily_powerflow,
+    run_qsts_powerflow,
 )
 from app.common.setup_log import setup_logger
 from app.extract_data.profile_reader import ProfileReader
@@ -22,7 +22,7 @@ app = FastAPI()
 logger = setup_logger(__name__)
 
 
-@app.get("/ray-init")
+@app.get("/ray-init", description="Initialize the ray server", tags=["Ray"])
 def ray_init_ep():
     if not ray.is_initialized():
         context: BaseContext = ray_init()
@@ -36,7 +36,7 @@ def ray_init_ep():
     return return_result
 
 
-@app.get("/ray-shutdown")
+@app.get("/ray-shutdown", description="Shutdown the ray server", tags=["Ray"])
 def ray_shutdown_ep():
     if ray.is_initialized():
         ray_shutdown()
@@ -46,19 +46,31 @@ def ray_shutdown_ep():
     return return_result
 
 
-@app.patch("/recreate-profile-data")
+@app.patch(
+    "/recreate-profile-data",
+    description="Recreate parqut files for load profiles in data/inputs",
+    tags=["PowerProfiles"],
+)
 def recreate_profile_data():
     _recreate_profile_data()
     return {"status": "Profile data recreated successfully"}
 
 
-@app.patch("/get-profile-data")
-def get_profile_data():
-    return ProfileReader().process_and_record_profiles().get_profiles()
+@app.patch(
+    "/read-profile-data",
+    description="Read power profiles",
+    tags=["PowerProfiles"],
+)
+def read_profile_data():
+    return ProfileReader().process_and_record_profiles().read_profiles()
 
 
-@app.get("/run-daily-example")
-def run_daily_example(
+@app.get(
+    "/run-qsts",
+    description="Run quasi static timeseries power flow for a period of time",
+    tags=["QSTS"],
+)
+def run_qsts(
     from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
     to_datetime: datetime = datetime(2025, 1, 2, 0, 0, 0),
     config: ExtraUnitRequest = Depends(ExtraUnitRequest),
@@ -74,9 +86,9 @@ def run_daily_example(
     else:
         logger.info("Ray is already initialized")
 
-    profiles = get_profile_data()
+    profiles = read_profile_data()
 
-    run_daily_powerflow(
+    run_qsts_powerflow(
         profiles=profiles,
         from_datetime=from_datetime,
         to_datetime=to_datetime,
