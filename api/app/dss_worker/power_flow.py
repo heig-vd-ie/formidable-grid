@@ -4,11 +4,11 @@ import os
 import psutil
 from tqdm import tqdm
 
-from app.common.konfig import MAX_CPU_COUNT
+from app.common.konfig import *
 from app.common.models import ExtraUnitRequest, InputDSSWorker, ProfileData
 from app.common.setup_log import setup_logger
 from app.dss_worker.worker import DSSWorker
-from app.common.helpers import remove_json_files, setup_circuit
+from app.common.helpers import remove_json_files, setup_circuit, setup_env_vars
 import ray
 
 logger = setup_logger(__name__)
@@ -25,13 +25,14 @@ def run_daily_powerflow(
 
     basedir = os.getcwd()
     env_vars = {
-        "INTERNAL_DSSFILES_FOLDER": os.environ.get("INTERNAL_DSSFILES_FOLDER", ""),
-        "DSS_EXPORT_FOLDER": os.environ.get("DSS_EXPORT_FOLDER", ""),
-        "EXTERNAL_DSSFILES_FOLDER": os.environ.get("EXTERNAL_DSSFILES_FOLDER", ""),
+        "INTERNAL_DSSFILES_FOLDER": INTERNAL_DSSFILES_FOLDER,
+        "EXTERNAL_DSSFILES_FOLDER": EXTERNAL_DSSFILES_FOLDER,
+        "DSS_EXPORT_FOLDER": DSS_EXPORT_FOLDER,
     }
+    setup_env_vars(env_vars)
 
     temp_file = setup_circuit(dss_filename)
-    input_dss_worker = InputDSSWorker(basedir, temp_file, env_vars)
+    input_dss_worker = InputDSSWorker(basedir, temp_file)
 
     max_parallel = max(1, (psutil.cpu_count() or MAX_CPU_COUNT) - 1)
     logger.info(f"{max_parallel} CPU cores used")

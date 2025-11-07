@@ -50,7 +50,6 @@ class ExtraUnitRequest(BaseModel):
 class InputDSSWorker:
     basedir: str
     temp_file: Path
-    env_vars: dict
 
 
 @dataclass

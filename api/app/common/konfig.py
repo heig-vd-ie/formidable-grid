@@ -11,9 +11,12 @@ MAX_ITERATION = 3
 SMALL_NUMBER = 1e-5
 NOMINAL_DROOP = 0.04
 NOMINAL_FREQUENCY = 50.0
-OUTPUT_FOLDER = os.path.join(
-    os.environ.get("DSS_EXPORT_FOLDER", ""), f"powerflow_results"
-)
+
+EXTERNAL_DSSFILES_FOLDER = "/app/data/inputs/ExternalDSSfiles"
+INTERNAL_DSSFILES_FOLDER = "/app/data/inputs/InternalDSSfiles"
+DSS_EXPORT_FOLDER = "/app/data/outputs"
+
+OUTPUT_FOLDER = Path(DSS_EXPORT_FOLDER) / f"powerflow_results"
 
 
 @dataclass

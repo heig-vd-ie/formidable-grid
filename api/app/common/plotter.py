@@ -1,5 +1,6 @@
 import os
 
+from pathlib import Path
 import matplotlib
 from matplotlib.lines import Line2D
 import matplotlib.patches as patches
@@ -11,6 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
+from app.common.konfig import *
 from app.common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -376,7 +378,7 @@ def plot_grid_topology(base_size_multiplier=1.0):
     plt.tight_layout()
 
     # Save the plot as both SVG and HTML
-    svg_path = os.path.join(os.getenv("DSS_EXPORT_FOLDER", ""), "network_topology.svg")
+    svg_path = Path(DSS_EXPORT_FOLDER) / "network_topology.svg"
     plt.savefig(svg_path, format="svg", dpi=300, bbox_inches="tight")
     logger.info(f"Grid topology plot (SVG) saved to: {svg_path}")
 
@@ -489,9 +491,7 @@ def plot_monitor_results():
             )
 
             # Save the plot
-            output_path = os.path.join(
-                os.getenv("DSS_EXPORT_FOLDER", ""), f"{monitor_name}_results.html"
-            )
+            output_path = Path(DSS_EXPORT_FOLDER) / f"{monitor_name}_results.html"
             fig.write_html(output_path)
             logger.info(f"Monitor plot saved to: {output_path}")
 
@@ -751,8 +751,6 @@ def create_qsts_plots(df: pd.DataFrame):
             )
 
     # Save plot to HTML
-    html_path = os.path.join(
-        os.getenv("DSS_EXPORT_FOLDER", ""), "daily_powerflow_hourly_plots.html"
-    )
+    html_path = Path(DSS_EXPORT_FOLDER) / "daily_powerflow_hourly_plots.html"
     fig.write_html(html_path)
     logger.info(f"Interactive plots saved to: {html_path}")

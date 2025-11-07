@@ -37,7 +37,6 @@ class DSSWorker:
     def _initialize_worker_dirs(self):
         """Initialize working directories & env vars"""
         os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        setup_env_vars(self.input_dss_worker.env_vars)
         os.chdir(self.input_dss_worker.basedir)
 
     def _setup_circuit(self):

@@ -8,7 +8,7 @@ from typing import Dict, List, Union
 
 import pandas as pd
 
-from app.common.konfig import OUTPUT_FOLDER
+from app.common.konfig import *
 from app.common.setup_log import setup_logger
 
 logger = setup_logger(__name__)
@@ -69,7 +69,7 @@ def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
 
 
 def setup_circuit(dss_filename: str) -> Path:
-    filepath = Path(os.getenv("INTERNAL_DSSFILES_FOLDER", "")) / dss_filename
+    filepath = Path(INTERNAL_DSSFILES_FOLDER) / dss_filename
     temp_file = replace_env_vars_in_dss(filepath)
     return temp_file
 
