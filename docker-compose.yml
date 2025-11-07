@@ -1,19 +1,4 @@
 services:
-  fg-gridlabd:
-    build:
-      context: .
-      dockerfile: Dockerfile.gridlabd
-    container_name: fg-gridlabd
-    network_mode: host
-    environment:
-      - INPUTS_FOLDER=${INPUTS_FOLDER}
-      - OUTPUTS_FOLDER=${OUTPUTS_FOLDER}
-      - INPUTS_FOLDER_NATIVE=${INPUTS_FOLDER_NATIVE}
-      - OUTPUTS_FOLDER_NATIVE=${OUTPUTS_FOLDER_NATIVE}
-    volumes:
-      - ./${INPUTS_FOLDER_NATIVE}:${INPUTS_FOLDER}
-      - ./${OUTPUTS_FOLDER_NATIVE}:${OUTPUTS_FOLDER}
-    user: root
   fg-py-api:
     build:
       context: .

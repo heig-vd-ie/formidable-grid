@@ -32,9 +32,3 @@ kill-port: ## Kill any process running on the specified port
 		echo "🔪 Killing process on port $(PORT)..."; \
 		kill -9 $$(lsof -ti :"$(PORT)"); \
 	fi
-
-fix-permission: ## Fix permissions for the cache directories
-	@echo "Fixing permissions for uploads and inputs directories"
-	@sudo mkdir -p $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
-	@sudo chown -R $$(whoami):$(whoami) $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
-	@sudo chmod -R 755 $(INPUTS_FOLDER_NATIVE) $(OUTPUTS_FOLDER_NATIVE)
