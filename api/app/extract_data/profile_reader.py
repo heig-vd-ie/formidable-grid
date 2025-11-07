@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.common.konfig import settings
+from app.common.konfig import settings, STEP_SIZE
 from app.common.models import ProfileData
 from app.common.setup_log import setup_logger
 
@@ -167,10 +167,12 @@ class ProfileReader:
 
     def _handle_missing_values(self):
         """Handle missing values in the profiles"""
+        STEP_SIZE_PD = STEP_SIZE.replace("m", "min").replace("s", "S").replace("h", "H")
+
         self.pv.set_index("Datetime", inplace=True)
         self.load.set_index("Datetime", inplace=True)
-        self.pv = self.pv.resample("15min").interpolate()
-        self.load = self.load.resample("15min").interpolate()
+        self.pv = self.pv.resample(STEP_SIZE_PD).interpolate()
+        self.load = self.load.resample(STEP_SIZE_PD).interpolate()
         self.pv = self.pv.drop(columns="Datetime", errors="ignore")
         self.load = self.load.drop(columns="Datetime", errors="ignore")
         average_load_p = self.load[

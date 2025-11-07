@@ -12,6 +12,7 @@ SMALL_NUMBER = 1e-5
 NOMINAL_DROOP = 0.04
 NOMINAL_FREQUENCY = 50.0
 
+STEP_SIZE = "15m"
 EXTERNAL_DSSFILES_FOLDER = "/app/data/inputs/ExternalDSSfiles"
 INTERNAL_DSSFILES_FOLDER = "/app/data/inputs/InternalDSSfiles"
 DSS_EXPORT_FOLDER = "/app/data/outputs"

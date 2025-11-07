@@ -2,6 +2,7 @@ import json
 import math
 import os
 from pathlib import Path
+import re
 import shutil
 import tempfile
 from typing import Dict, List, Union
@@ -94,3 +95,22 @@ def read_results():
     logger.info(f"Average OpenDSS solve time: {avg_solve_time:.2f} ms")
     logger.info(f"Speedup achieved through parallelization!")
     return df
+
+
+def to_seconds(time_str) -> int:
+    # Match number + unit (s, m, h)
+    match = re.fullmatch(r"(\d+)([smh])", time_str)
+    if not match:
+        raise ValueError("Invalid time format")
+
+    value, unit = match.groups()
+    value = int(value)
+
+    if unit == "s":
+        return value
+    elif unit == "m":
+        return value * 60
+    elif unit == "h":
+        return value * 3600
+    else:
+        raise ValueError("Invalid time format")

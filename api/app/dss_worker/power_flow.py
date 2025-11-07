@@ -8,7 +8,12 @@ from app.common.konfig import *
 from app.common.models import ExtraUnitRequest, InputDSSWorker, ProfileData
 from app.common.setup_log import setup_logger
 from app.dss_worker.worker import DSSWorker
-from app.common.helpers import remove_json_files, setup_circuit, setup_env_vars
+from app.common.helpers import (
+    remove_json_files,
+    setup_circuit,
+    setup_env_vars,
+    to_seconds,
+)
 import ray
 
 logger = setup_logger(__name__)
@@ -28,6 +33,7 @@ def run_daily_powerflow(
         "INTERNAL_DSSFILES_FOLDER": INTERNAL_DSSFILES_FOLDER,
         "EXTERNAL_DSSFILES_FOLDER": EXTERNAL_DSSFILES_FOLDER,
         "DSS_EXPORT_FOLDER": DSS_EXPORT_FOLDER,
+        "STEP_SIZE": STEP_SIZE,
     }
     setup_env_vars(env_vars)
 
@@ -37,9 +43,13 @@ def run_daily_powerflow(
     max_parallel = max(1, (psutil.cpu_count() or MAX_CPU_COUNT) - 1)
     logger.info(f"{max_parallel} CPU cores used")
 
-    total_runs = int((to_datetime - from_datetime).total_seconds() // (60 * 15))
+    total_seconds = to_seconds(STEP_SIZE)
+
+    total_runs = int((to_datetime - from_datetime).total_seconds() // total_seconds)
     logger.info(f"Total runs: {total_runs}")
-    timestamps = [from_datetime + timedelta(minutes=i * 15) for i in range(total_runs)]
+    timestamps = [
+        from_datetime + timedelta(seconds=i * total_seconds) for i in range(total_runs)
+    ]
 
     pbar = tqdm(total=total_runs, desc="Running Power Flows")
 
