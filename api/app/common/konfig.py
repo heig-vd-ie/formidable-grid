@@ -33,8 +33,8 @@ class ProfileDataSettings:
 
 @dataclass
 class Settings:
-    power_profile_school_sql_url: str
     profile_data: ProfileDataSettings
+    power_profile_school_sql_url: str = ""
 
 
 settings_not_casted = Dynaconf(
