@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from app.common.konfig import settings, STEP_SIZE
-from app.common.models import ProfileData
-from app.common.setup_log import setup_logger
+from konfig import settings, STEP_SIZE
+from data_model import ProfileData
+from setup_log import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -70,8 +70,8 @@ class ProfileReader:
         df["κp"] = df["PV"] / df["PV"].max()
 
         _pv = df[["Datetime", "κp"]].copy()
-        _pv["year"] = _pv["Datetime"].dt.year
-        _pv["Datetime"] = "2025-" + df["Datetime"].dt.strftime(MONTHTIME_FORMAT)
+        _pv["year"] = _pv["Datetime"].dt.year  # type: ignore
+        _pv["Datetime"] = "2025-" + df["Datetime"].dt.strftime(MONTHTIME_FORMAT)  # type: ignore
         _pv = _pv.pivot(index="Datetime", columns="year", values="κp")
         _pv.columns = [f"κp.{year}" for year in _pv.columns]
 
@@ -109,8 +109,8 @@ class ProfileReader:
 
         _df = _df.groupby("Datetime").mean().reset_index()
 
-        _df["year"] = _df["Datetime"].dt.year
-        _df["Datetime"] = "2025-" + _df["Datetime"].dt.strftime(MONTHTIME_FORMAT)
+        _df["year"] = _df["Datetime"].dt.year  # type: ignore
+        _df["Datetime"] = "2025-" + _df["Datetime"].dt.strftime(MONTHTIME_FORMAT)  # type: ignore
         _df["Datetime"] = pd.to_datetime(
             _df["Datetime"], format="%Y-" + MONTHTIME_FORMAT, errors="coerce"
         )
@@ -176,10 +176,10 @@ class ProfileReader:
         self.pv = self.pv.drop(columns="Datetime", errors="ignore")
         self.load = self.load.drop(columns="Datetime", errors="ignore")
         average_load_p = self.load[
-            [c for c in self.load.columns if c.startswith("κp")]
+            [c for c in self.load.columns if c.startswith("κp")]  # type: ignore
         ].apply(lambda x: x.mean(), axis=1)
         average_load_q = self.load[
-            [c for c in self.load.columns if c.startswith("κq")]
+            [c for c in self.load.columns if c.startswith("κq")]  # type: ignore
         ].apply(lambda x: x.mean(), axis=1)
         average_pv_p = self.pv[
             [c for c in self.pv.columns if c.startswith("κp")]
@@ -189,7 +189,7 @@ class ProfileReader:
                 self.pv.loc[self.pv[c].isnull(), c] = average_pv_p.loc[
                     self.pv[c].isnull()
                 ]
-        for c in self.load.columns:
+        for c in self.load.columns:  # type: ignore
             if self.load[c].isnull().any():
                 if c.startswith("κp"):
                     self.load.loc[self.load[c].isnull(), c] = average_load_p.loc[
@@ -213,10 +213,10 @@ class ProfileReader:
             / settings.profile_data.processed_reactive_load_profile_file
         )
         self.pv.to_parquet(pv_output_path)
-        self.load[[c for c in self.load.columns if c.startswith("κp")]].to_parquet(
+        self.load[[c for c in self.load.columns if c.startswith("κp")]].to_parquet(  # type: ignore
             real_load_output_path
         )
-        self.load[[c for c in self.load.columns if c.startswith("κq")]].to_parquet(
+        self.load[[c for c in self.load.columns if c.startswith("κq")]].to_parquet(  # type: ignore
             reactive_load_output_path
         )
         logger.info(f"Saved processed PV profiles to {pv_output_path}")

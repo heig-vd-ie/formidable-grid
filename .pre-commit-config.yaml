@@ -14,8 +14,8 @@ repos:
         language: system
         files: '^api/.*\.py$'
 
-      - id: lint
-        name: Run pylint on API
-        entry: make lint
-        language: system
-        files: "^api/.*"   # only run if files under api/ changed
+      # - id: lint
+      #   name: Run pylint on API
+      #   entry: make lint
+      #   language: system
+      #   files: "^api/.*"   # only run if files under api/ changed

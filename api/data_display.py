@@ -1,5 +1,3 @@
-import os
-
 from pathlib import Path
 import matplotlib
 from matplotlib.lines import Line2D
@@ -12,8 +10,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from app.common.konfig import *
-from app.common.setup_log import setup_logger
+from konfig import *
+from setup_log import setup_logger
 
 logger = setup_logger(__name__)
 

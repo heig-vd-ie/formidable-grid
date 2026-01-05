@@ -3,7 +3,8 @@ from unittest.mock import patch
 
 from main import read_profile_data
 
-from app import read_results, run_qsts_powerflow
+from data_extract import read_results
+from opendss_worker import run_qsts_powerflow
 
 
 class TestQstsExample:

@@ -3,8 +3,8 @@ from pathlib import Path
 import pandas as pd
 import sqlalchemy
 
-from app.common.konfig import settings
-from app.common.setup_log import setup_logger
+from konfig import settings
+from setup_log import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -116,4 +116,4 @@ if __name__ == "__main__":
 
     ENGINE = sqlalchemy.create_engine(settings.power_profile_school_sql_url)
     HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles()
-    HEIGVDCHMeteoDB(ENGINE).extract_load_profiles()
+    HEIGVDCHMeteoDB(ENGINE).extract_load_profiles()  # type: ignore

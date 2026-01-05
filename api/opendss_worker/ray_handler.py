@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from app.common.setup_log import setup_logger
+from setup_log import setup_logger
 import ray
 
 logger = setup_logger(__name__)
