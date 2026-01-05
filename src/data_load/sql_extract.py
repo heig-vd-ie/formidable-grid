@@ -112,9 +112,3 @@ class HEIGVDCHMeteoDB:
         self._record_into_parquet(df, filename)
         logger.info(f"Saved load profiles to {filename}")
         return self
-
-
-if __name__ == "__main__":
-
-    ENGINE = sqlalchemy.create_engine(settings.power_profile_school_sql_url)
-    HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles().extract_load_profiles()
