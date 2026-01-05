@@ -188,6 +188,6 @@ spill
 
 .secrets.toml
 
-docker/data/*
-docker/data/lock
+dockerfiles/data/*
+dockerfiles/data/lock
 logs

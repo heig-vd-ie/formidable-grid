@@ -7,25 +7,25 @@ fetch-images: ## Fetch the Docker images
 	@. ./scripts/fetch-images.sh
 
 build: ## Build the Docker images
-	cd docker && docker compose -f $(COMPOSE_FILE) build && cd ..
+	cd dockerfiles && docker compose -f $(COMPOSE_FILE) build && cd ..
 
 _start: ## Start the Docker containers
-	cd docker && docker compose -f $(COMPOSE_FILE) up -d $(CONTAINERS) && cd ..
+	cd dockerfiles && docker compose -f $(COMPOSE_FILE) up -d $(CONTAINERS) && cd ..
 
 start: ## Start Native service frontend (the docker should be first stopped)
 	@./scripts/start-dev.sh
 
 stop: ## Stop the Docker containers
-	cd docker && docker compose -f $(COMPOSE_FILE) stop && cd ..
+	cd dockerfiles && docker compose -f $(COMPOSE_FILE) stop && cd ..
 
 down: ## Stop and remove the Docker containers
-	cd docker && docker compose -f $(COMPOSE_FILE) down && cd ..
+	cd dockerfiles && docker compose -f $(COMPOSE_FILE) down && cd ..
 
 restart: ## Restart the Docker containers
 	@$(MAKE) stop _start
 
 logs: ## View the logs for the Docker containers
-	cd docker && docker compose -f $(COMPOSE_FILE) logs -f $(CONTAINERS)
+	cd dockerfiles && docker compose -f $(COMPOSE_FILE) logs -f $(CONTAINERS)
 
 kill-port: ## Kill any process running on the specified port
 	@if lsof -ti :"$(PORT)" >/dev/null; then \
