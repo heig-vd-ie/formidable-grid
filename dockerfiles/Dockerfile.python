@@ -1,0 +1,42 @@
+FROM python:3.12.3-slim
+
+ENV POETRY_VERSION=2.1.3 \
+    POETRY_VIRTUALENVS_CREATE=false \
+    POETRY_NO_INTERACTION=1 \
+    PYTHONPATH=/app/src \
+    PYTHONWARNINGS="ignore::SyntaxWarning"
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    sudo \
+    gdb \
+    libpq-dev \
+    gcc \
+    python3-dev \
+    build-essential \
+    direnv \
+    git openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
+
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+RUN mkdir -p -m 0600 ~/.ssh && ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock /app/
+COPY .settings.toml /app/
+COPY .secrets.toml /app/
+COPY scripts/ /app/scripts/
+
+RUN --mount=type=ssh ls -la /run/ssh-agent || echo "No ssh agent mounted"
+RUN --mount=type=ssh ssh -T git@github.com || echo "SSH connection failed"
+
+RUN --mount=type=ssh \
+    poetry install --no-root --extras "internal"
+
+EXPOSE ${SERVER_PY_PORT}
+
+# Copy and make the Ray start script executable
+COPY scripts/start-ray-head.sh /app/start-ray-head.sh
+RUN chmod +x /app/start-ray-head.sh
+CMD sh -c "/app/start-ray-head.sh && uvicorn main:app --host 0.0.0.0 --reload --port $SERVER_PY_PORT"

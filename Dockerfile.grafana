@@ -1,6 +1,0 @@
-FROM grafana/grafana:latest
-
-# Copy config and dashboards
-COPY grafana/grafana.ini /etc/grafana/grafana.ini
-COPY grafana/dashboards/ /var/lib/grafana/dashboards/
-COPY grafana/provisioning/ /etc/grafana/provisioning/

@@ -1,0 +1,19 @@
+Clear
+New Circuit.upfc3-1
+
+Redirect LoadShape.dss
+Redirect Vsource.dss
+Redirect XfmrCode.dss
+Redirect GrowthShape.dss
+Redirect XYcurve.dss
+Redirect TCC_Curve.dss
+Redirect Spectrum.dss
+Redirect Load.dss
+Redirect Transformer.dss
+Redirect UPFC.dss
+Redirect UPFCControl.dss
+Redirect Monitor.dss
+MakeBusList
+Redirect BusVoltageBases.dss  ! set voltage bases
+Buscoords buscoords.dss
+GIScoords GIScoords.dss

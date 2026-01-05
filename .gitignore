@@ -19,7 +19,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-*.ipynb
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -174,24 +173,17 @@ cython_debug/
 
 *.tar
 images/
-mongo-data/
 
-data/outputs
-data/uploads
+artifacts/outputs
 
 opendss/Exports/*
 
 
 ray
 
-data/queries.active
 spill
 
 .secrets.toml
 
-data/0*
-data/chunks_head
-data/wal
-data/lock
-
+dockerfiles/data/*
 logs

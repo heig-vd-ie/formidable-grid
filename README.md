@@ -37,6 +37,14 @@ make stop # it stops all services
 make down # it removes all existing services 
 ```
 
+### Generate new power profiles
+
+The power profile is generated from SQL data recording measurements from HEIG-VD. Alternatively, you can use datasets in Parquet format located in the `data/inputs` folder. To run the desired endpoints, a `.secrets.toml` file must be placed in the formidable folder on the Switch drive to access the private MySQL server. This file should include the following variable:
+
+```sh
+POWER_PROFILE_SCHOOL_SQL_URL = "mysql+pymysql://db_user:db_pass@host:port/db_name"
+```
+
 ## Main contributors
 
 Mohammad Rayati (2025-Present) 

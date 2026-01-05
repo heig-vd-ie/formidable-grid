@@ -1,0 +1,12 @@
+Compile ($EXTERNAL_DSSFILES_FOLDER/IEEE_123_Bus-G/Master.dss)
+
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewMonitors.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewLoadShapes.dss
+Redirect $INTERNAL_DSSFILES_FOLDER/Common/NewVsources.dss
+
+Set MaxControlIter=1000 LoadMult=1.0 mode=daily stepsize=$STEP_SIZE number=1440 loadshapeclass=daily time=(0,0)
+
+Calcv
+BusCoords $INTERNAL_DSSFILES_FOLDER/Common/BusCoords.dss
+
+Solve
