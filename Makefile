@@ -32,3 +32,6 @@ kill-port: ## Kill any process running on the specified port
 		echo "🔪 Killing process on port $(PORT)..."; \
 		kill -9 $$(lsof -ti :"$(PORT)"); \
 	fi
+
+freeze-pip-requirements: ## Freeze pip requirements.txt file
+	@pip freeze -> requirements.txt

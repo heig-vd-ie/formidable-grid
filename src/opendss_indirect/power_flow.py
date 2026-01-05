@@ -3,7 +3,7 @@ import psutil
 from tqdm import tqdm
 from datetime import datetime, timedelta
 from konfig import *
-from data_model import ElementsSetPoints, FreqCoefficients, GfmKace, ProfileData
+from data_model import GfmKace, ProfileData
 from setup_log import setup_logger
 from opendss_indirect.worker import DSSWorker
 from helpers import (
