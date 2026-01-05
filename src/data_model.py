@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import pandas as pd
 from pydantic import BaseModel
 
@@ -31,7 +32,8 @@ class GfmKace(BaseModel):
     seed_number: int = 42
 
 
-class ProfileData(BaseModel):
+@dataclass
+class ProfileData:
     pv: pd.DataFrame
     load_p: pd.DataFrame
     load_q: pd.DataFrame
