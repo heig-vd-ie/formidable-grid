@@ -157,9 +157,7 @@ class DSSWorker:
             p = q = {}
             for el in elements:
                 self.dss.Circuit.SetActiveElement(f"{name}.{el}")
-                p[f"{name}.{el}"], q[f"{name}.{el}"] = threephase_tuple_to_pq(
-                    self.dss.CktElement.Powers()
-                )
+                p[el], q[el] = threephase_tuple_to_pq(self.dss.CktElement.Powers())
             setpoints[name] = SetPoints(p=p, q=q)
         return ElementsSetPoints(
             load=setpoints["Load"],

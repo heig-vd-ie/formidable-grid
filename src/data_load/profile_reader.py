@@ -14,11 +14,10 @@ MONTHTIME_FORMAT = "%m-%d %H:%M:%S"
 class ProfileReader:
     def __init__(self):
         self.INPUT_DATA_DIR = (
-            Path(__file__).parent.parent.parent.parent
-            / settings.profile_data.folder_path
+            Path(__file__).parent.parent.parent / settings.profile_data.folder_path
         )
         self.OUTPUT_DATA_DIR = (
-            Path(__file__).parent.parent.parent.parent
+            Path(__file__).parent.parent.parent
             / settings.profile_data.output_folder_path
         )
 

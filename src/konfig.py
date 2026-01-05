@@ -14,9 +14,9 @@ NOMINAL_FREQUENCY = 50.0
 
 NUMBER_OF_PV_SHAPES = 5
 STEP_SIZE = "15m"
-EXTERNAL_DSSFILES_FOLDER = "/app/data/inputs/ExternalDSSfiles"
-INTERNAL_DSSFILES_FOLDER = "/app/data/inputs/InternalDSSfiles"
-DSS_EXPORT_FOLDER = "/app/data/outputs"
+EXTERNAL_DSSFILES_FOLDER = "/app/artifacts/inputs/ExternalDSSfiles"
+INTERNAL_DSSFILES_FOLDER = "/app/artifacts/inputs/InternalDSSfiles"
+DSS_EXPORT_FOLDER = "/app/artifacts/outputs"
 
 OUTPUT_FOLDER = Path(DSS_EXPORT_FOLDER) / f"powerflow_results"
 CURRENT_DIR = os.getcwd()
