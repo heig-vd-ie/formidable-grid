@@ -13,12 +13,21 @@ from data_model import (
     ProfileData,
     SetPoints,
 )
-from opendss_indirect.power_flow import update_freq
 from setup_log import setup_logger
 from helpers import clean_nans, initialize_dirs, threephase_tuple_to_pq
 import ray
 
 logger = setup_logger(__name__)
+
+
+def update_freq(el_sps: ElementsSetPoints, freq_coeff: FreqCoefficients):
+    """Frequency update based on droop and storage capacity"""
+    Δpg = sum(el_sps.pvsystem.p.values()) + sum(el_sps.storage.p.values())
+    Δpd = sum(el_sps.load.p.values())
+    Δf = (Δpg - Δpd) / (
+        freq_coeff.damping * Δpd + sum([1 / r for r in freq_coeff.droop.values()])
+    )
+    return NOMINAL_FREQUENCY + Δf
 
 
 @ray.remote

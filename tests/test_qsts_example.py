@@ -6,7 +6,7 @@ from opendss_indirect import run_qsts_remotely
 
 
 class TestQstsExample:
-    @patch("app.dss_worker.worker.MAX_ITERATION", 1)
+    @patch("opendss_indirect.worker.MAX_ITERATION", 1)
     def test_qsts_example(self):
         profiles = read_profile_data()
         run_qsts_remotely(

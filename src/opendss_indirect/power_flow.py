@@ -17,16 +17,6 @@ import ray
 logger = setup_logger(__name__)
 
 
-def update_freq(el_sps: ElementsSetPoints, freq_coeff: FreqCoefficients):
-    """Frequency update based on droop and storage capacity"""
-    Δpg = sum(el_sps.pvsystem.p.values()) + sum(el_sps.storage.p.values())
-    Δpd = sum(el_sps.load.p.values())
-    Δf = (Δpg - Δpd) / (
-        freq_coeff.damping * Δpd + sum([1 / r for r in freq_coeff.droop.values()])
-    )
-    return NOMINAL_FREQUENCY + Δf
-
-
 def run_qsts_remotely(
     profiles: ProfileData,
     dss_filename: str = "Run_QSTS.dss",
