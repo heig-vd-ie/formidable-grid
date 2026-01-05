@@ -2,7 +2,7 @@ services:
   fg-py-api:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.python
+      dockerfile: dockerfiles/Dockerfile.python
       ssh:
         - default
     container_name: fg-py-api
@@ -34,7 +34,8 @@ services:
       - ./ray:/tmp/ray
       - ./.cache:/app/.cache:rw
       - ./data:/app/data:rw
-      - ./src:/app/src:rw
+      - ../io:/app/io
+      - ../src:/app/src:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -47,7 +48,7 @@ services:
   fg-grafana:
     build:
       context: ..
-      dockerfile: docker/Dockerfile.grafana
+      dockerfile: dockerfiles/Dockerfile.grafana
     container_name: fg-grafana
     network_mode: host
     environment:

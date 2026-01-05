@@ -173,21 +173,17 @@ cython_debug/
 
 *.tar
 images/
-mongo-data/
 
-data/outputs
-data/uploads
+io/outputs
 
 opendss/Exports/*
 
 
 ray
 
-data/queries.active
 spill
 
 .secrets.toml
 
 dockerfiles/data/*
-dockerfiles/data/lock
 logs
