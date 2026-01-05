@@ -34,7 +34,7 @@ class HEIGVDCHMeteoDB:
     def extract_pv_profiles(
         self,
         filename: str | None = None,
-    ):
+    ) -> "HEIGVDCHMeteoDB":
         if filename is None:
             filename = (
                 settings.profile_data.folder_path
@@ -50,6 +50,7 @@ class HEIGVDCHMeteoDB:
         df = pd.concat(dfs).sort_values(by="Datetime").reset_index(drop=True)
         self._record_into_parquet(df, filename)
         logger.info(f"Saved PV profiles to {filename}")
+        return self
 
     def _load_profile_query(self) -> str:
         return f"""
@@ -98,7 +99,7 @@ class HEIGVDCHMeteoDB:
     def extract_load_profiles(
         self,
         filename: str | None = None,
-    ):
+    ) -> "HEIGVDCHMeteoDB":
         if filename is None:
             filename = (
                 settings.profile_data.folder_path
@@ -110,10 +111,10 @@ class HEIGVDCHMeteoDB:
         logger.info(f"Extracted load profile data")
         self._record_into_parquet(df, filename)
         logger.info(f"Saved load profiles to {filename}")
+        return self
 
 
 if __name__ == "__main__":
 
     ENGINE = sqlalchemy.create_engine(settings.power_profile_school_sql_url)
-    HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles()
-    HEIGVDCHMeteoDB(ENGINE).extract_load_profiles()  # type: ignore
+    HEIGVDCHMeteoDB(ENGINE).extract_pv_profiles().extract_load_profiles()
