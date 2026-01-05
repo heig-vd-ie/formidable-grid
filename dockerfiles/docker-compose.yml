@@ -34,7 +34,7 @@ services:
       - ./ray:/tmp/ray
       - ./.cache:/app/.cache:rw
       - ./data:/app/data:rw
-      - ../io:/app/io
+      - ../artifacts:/app/artifacts
       - ../src:/app/src:rw
       - ../tests:/app/tests:rw
     stdin_open: true
