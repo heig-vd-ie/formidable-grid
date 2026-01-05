@@ -1,7 +1,7 @@
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
-
 from dynaconf import Dynaconf
 
 SECRET_KEY = "B0er23j/4yX R~XHH!jmN]LWX/,?Rh"
@@ -9,14 +9,17 @@ MAX_CPU_COUNT = 32
 MAX_ITERATION = 3
 SMALL_NUMBER = 1e-5
 NOMINAL_DROOP = 0.04
+NOMINAL_DAMPING = 0.01
 NOMINAL_FREQUENCY = 50.0
 
+NUMBER_OF_PV_SHAPES = 5
 STEP_SIZE = "15m"
 EXTERNAL_DSSFILES_FOLDER = "/app/data/inputs/ExternalDSSfiles"
 INTERNAL_DSSFILES_FOLDER = "/app/data/inputs/InternalDSSfiles"
 DSS_EXPORT_FOLDER = "/app/data/outputs"
 
 OUTPUT_FOLDER = Path(DSS_EXPORT_FOLDER) / f"powerflow_results"
+CURRENT_DIR = os.getcwd()
 
 
 @dataclass

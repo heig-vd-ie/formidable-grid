@@ -3,14 +3,19 @@ import json
 import os
 import random
 import time
-
 import numpy as np
 import pandas as pd
-
 from konfig import *
-from data_model import ExtraUnitRequest, InputDSSWorker, ProfileData
+from data_model import (
+    FreqCoefficients,
+    GfmKace,
+    ElementsSetPoints,
+    ProfileData,
+    SetPoints,
+)
+from opendss_indirect.power_flow import update_freq
 from setup_log import setup_logger
-from helpers import clean_nans, setup_env_vars
+from helpers import clean_nans, initialize_dirs, threephase_tuple_to_pq
 import ray
 
 logger = setup_logger(__name__)
@@ -20,54 +25,49 @@ logger = setup_logger(__name__)
 class DSSWorker:
     def __init__(
         self,
-        input_dss_worker: InputDSSWorker,
+        temp_filepath: str,
         profiles: ProfileData,
-        extra_unit_request: ExtraUnitRequest,
+        gfm_kace: GfmKace,
     ):
         from opendssdirect import dss
 
         self.dss = dss
-        self.input_dss_worker = input_dss_worker
+        self.temp_filepath = temp_filepath
         self.profiles = profiles
-        self.extra_unit_request = extra_unit_request
+        self.gfm_kace = gfm_kace
 
-        self._initialize_worker_dirs()
+        initialize_dirs()
         self._setup_circuit()
-
-    def _initialize_worker_dirs(self):
-        """Initialize working directories & env vars"""
-        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        os.chdir(self.input_dss_worker.basedir)
 
     def _setup_circuit(self):
         """Set up circuit in opendss"""
         self.dss.Command("Clear")
-        self.dss.Command(f'Compile "{self.input_dss_worker.temp_file}"')
+        self.dss.Command(f'Compile "{self.temp_filepath}"')
         self.buses = self.dss.Circuit.AllBusNames() or []
 
         """Add extra PV systems and storage units to the circuit for testing"""
-        for i in range(self.extra_unit_request.number_of_pvs):
-            seed = self.extra_unit_request.seed_number + i + 1
+        for i in range(self.gfm_kace.number_of_pvs):
+            seed = self.gfm_kace.seed_number + i + 1
             random.seed(seed)
             np.random.seed(seed)
 
             bus_name = random.choice(self.buses)
-            pv_shape = f"pvshape{(i % 5) + 1}"
+            pv_shape = f"pvshape{(i % NUMBER_OF_PV_SHAPES) + 1}"
 
             self.dss.Command(
                 f'New "PVSystem.PV{i+1}" Phases=3 conn=delta Bus1={bus_name} %Cutin=0 %Cutout=0 '
-                f"kV=4.16 pmpp={self.extra_unit_request.pv_kva} daily={pv_shape} "
-                f"kVA={self.extra_unit_request.pv_kva * 1.1} %X=50 kP=0.3 KVDC=0.700 PITol=0.1"
+                f"kV=4.16 pmpp={self.gfm_kace.pv_kva} daily={pv_shape} "
+                f"kVA={self.gfm_kace.pv_kva * 1.1} %X=50 kP=0.3 KVDC=0.700 PITol=0.1"
             )
 
-            if random.random() < self.extra_unit_request.gfmi_percentage:
+            if random.random() < self.gfm_kace.gfmi_percentage:
                 self.dss.Command(
                     f'New "Storage.Storage{i+1}" Phases=3 conn=wye Bus1={bus_name} '
-                    f"kV=4.16 kWrated={self.extra_unit_request.storage_kva} "
-                    f"kWhrated={self.extra_unit_request.storage_kva * 4000}"
+                    f"kV=4.16 kWrated={self.gfm_kace.storage_kva} "
+                    f"kWhrated={self.gfm_kace.storage_kva * 4000}"
                 )
 
-        self.storage_kva = self.extra_unit_request.storage_kva
+        self.storage_kva = self.gfm_kace.storage_kva
 
         """Cache circuit components for faster access"""
         self.loads = [l for l in self.dss.Loads.AllNames() or [] if "Storage" not in l]
@@ -87,6 +87,10 @@ class DSSWorker:
         self.vsources = [
             v for v in self.dss.Vsources.AllNames() or [] if "fictive" in v
         ]
+        self.freq_coeff = FreqCoefficients(
+            damping=NOMINAL_DAMPING,
+            droop={name: NOMINAL_DROOP for name in self.storages},
+        )
 
     def solve(self, curr_datetime: datetime):
         """Run power flow for a single timestep"""
@@ -97,12 +101,13 @@ class DSSWorker:
         self._set_load_shape_multipliers(curr_datetime)
         self.dss.run_command("Solve")
         freqs = [NOMINAL_FREQUENCY]
-        Δp, Δq = self._extract_load_n_pv_powers()
+        el_sps = self._extract_powers()
 
         for _ in range(MAX_ITERATION):
-            self._set_power_storages(Δp, Δq)
+            freq = update_freq(el_sps=el_sps, freq_coeff=self.freq_coeff)
+            freqs.append(freq)
+            self._set_power_storages(freq=freq, el_sps=el_sps)
             self.dss.run_command("Solve")
-            freqs.append(self._update_freq(Δp))
             if abs(freqs[-1] - freqs[-2]) / NOMINAL_FREQUENCY < SMALL_NUMBER:
                 break
 
@@ -115,14 +120,6 @@ class DSSWorker:
     def _set_load_shape_multipliers(self, curr_datetime: datetime):
         """Set load and PV shape multipliers based on profiles"""
 
-        def __set_shapes(shapes: list, profile_data: pd.DataFrame):
-            for i, shape in enumerate(shapes):
-                col = profile_data.columns[i % len(profile_data.columns)]
-                multiplier = profile_data.iloc[0][col]
-                self.dss.run_command(
-                    f"Edit LoadShape.{shape} npts=1 mult=[{multiplier}]"
-                )
-
         pv = self.profiles.pv[self.profiles.pv.index == curr_datetime]
         load_p = self.profiles.load_p[self.profiles.load_p.index == curr_datetime]
         load_q = self.profiles.load_q[self.profiles.load_q.index == curr_datetime]
@@ -131,36 +128,42 @@ class DSSWorker:
             logger.warning(f"No profile data for {curr_datetime}")
             return
 
-        __set_shapes(self.loadshapes, load_p)
-        __set_shapes(self.pvloadshapes, pv)
+        self.__set_shapes(self.loadshapes, load_p)
+        self.__set_shapes(self.pvloadshapes, pv)
 
-    def _extract_load_n_pv_powers(self):
+    def __set_shapes(self, shapes: list, profile_data: pd.DataFrame):
+        for i, shape in enumerate(shapes):
+            col = profile_data.columns[i % len(profile_data.columns)]
+            multiplier = profile_data.iloc[0][col]
+            self.dss.run_command(f"Edit LoadShape.{shape} npts=1 mult=[{multiplier}]")
+
+    def _extract_powers(self) -> ElementsSetPoints:
         """Sum powers of loads and PV systems"""
-
-        def __extract_power(powers, Δp, Δq):
-            return Δp + sum(powers[::2]), Δq + sum(powers[1::2])
-
-        Δp = Δq = 0.0
-        for name, elements in [("Load", self.loads), ("PVSystem", self.pvsystems)]:
+        setpoints = {}
+        for name, elements in [
+            ("Load", self.loads),
+            ("PVSystem", self.pvsystems),
+            ("Storage", self.storages),
+        ]:
+            p = q = {}
             for el in elements:
                 self.dss.Circuit.SetActiveElement(f"{name}.{el}")
-                Δp, Δq = __extract_power(self.dss.CktElement.Powers(), Δp, Δq)
-        return Δp, Δq
-
-    def _update_freq(self, Δp: float):
-        """Frequency update based on droop and storage capacity"""
-        Δf = (
-            -Δp
-            * NOMINAL_FREQUENCY
-            * NOMINAL_DROOP
-            / (len(self.storages) * self.storage_kva)
+                p[f"{name}.{el}"], q[f"{name}.{el}"] = threephase_tuple_to_pq(
+                    self.dss.CktElement.Powers()
+                )
+            setpoints[name] = SetPoints(p=p, q=q)
+        return ElementsSetPoints(
+            load=setpoints["Load"],
+            pvsystem=setpoints["PVSystem"],
+            storage=setpoints["Storage"],
         )
-        return NOMINAL_FREQUENCY + Δf
 
-    def _set_power_storages(self, Δp: float, Δq: float):
+    def _set_power_storages(self, freq: float, el_sps: ElementsSetPoints):
         for storage in self.storages:
             self.dss.Circuit.SetActiveElement(f"Storage.{storage}")
-            set_point = Δp * 3 / len(self.storages)
+            set_point = (freq - NOMINAL_FREQUENCY) * self.freq_coeff.droop[
+                storage
+            ] + el_sps.storage.p[storage]
             self.dss.run_command(f"Edit Storage.{storage} kW={set_point}")
 
     def _dump_results(

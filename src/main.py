@@ -1,16 +1,15 @@
 import datetime
 from datetime import datetime
-
 from fastapi import Depends, FastAPI
 from ray._private.worker import BaseContext
 
-from opendss_worker import (
+from opendss_indirect import (
     ray_init,
     ray_shutdown,
-    run_qsts_powerflow,
+    run_qsts_remotely,
 )
 from data_extract import read_results
-from data_model import ExtraUnitRequest
+from data_model import GfmKace
 from data_display import create_qsts_plots
 from data_load import _recreate_profile_data
 from setup_log import setup_logger
@@ -74,7 +73,7 @@ def read_profile_data():
 def run_qsts(
     from_datetime: datetime = datetime(2025, 1, 1, 0, 0, 0),
     to_datetime: datetime = datetime(2025, 1, 2, 0, 0, 0),
-    config: ExtraUnitRequest = Depends(ExtraUnitRequest),
+    gfm_kace: GfmKace = Depends(GfmKace),
 ):
     if isinstance(from_datetime, str):
         from_datetime = datetime.fromisoformat(from_datetime)
@@ -89,11 +88,11 @@ def run_qsts(
 
     profiles = read_profile_data()
 
-    run_qsts_powerflow(
+    run_qsts_remotely(
         profiles=profiles,
         from_datetime=from_datetime,
         to_datetime=to_datetime,
-        extra_unit_request=config,
+        gfm_kace=gfm_kace,
     )
     df = read_results()
     create_qsts_plots(df)

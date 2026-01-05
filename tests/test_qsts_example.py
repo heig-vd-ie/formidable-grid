@@ -1,17 +1,15 @@
 import datetime
 from unittest.mock import patch
-
 from main import read_profile_data
-
 from data_extract import read_results
-from opendss_worker import run_qsts_powerflow
+from opendss_indirect import run_qsts_remotely
 
 
 class TestQstsExample:
     @patch("app.dss_worker.worker.MAX_ITERATION", 1)
     def test_qsts_example(self):
         profiles = read_profile_data()
-        run_qsts_powerflow(
+        run_qsts_remotely(
             profiles=profiles,
             to_datetime=datetime.datetime(2025, 1, 1, 1, 0, 0),
         )

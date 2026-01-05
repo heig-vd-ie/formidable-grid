@@ -5,12 +5,26 @@ import re
 import shutil
 import tempfile
 from typing import Dict, List, Union
-
-
 from konfig import *
 from setup_log import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def tuple_to_powerflow(power_tuple: list[float]) -> list[float]:
+    """Convert a tuple of (real_power_kW, reactive_power_kVAr) to a PowerFlow object."""
+    return [
+        power_tuple[0],
+        power_tuple[2],
+        power_tuple[4],
+        power_tuple[1],
+        power_tuple[3],
+        power_tuple[5],
+    ]
+
+
+def threephase_tuple_to_pq(power_tuple: list[float]) -> tuple[float, float]:
+    return sum(power_tuple[::2]), sum(power_tuple[1::2])
 
 
 def clean_nans(obj: Union[Dict, List, float]) -> Union[Dict, List, float, None]:
@@ -67,7 +81,13 @@ def replace_env_vars_in_dss(dss_file_path: Path) -> Path:
     return Path(temp_dss_file_path)
 
 
-def setup_circuit(dss_filename: str) -> Path:
+def initialize_dirs():
+    """Initialize working directories & env vars"""
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    os.chdir(CURRENT_DIR)
+
+
+def setup_opendss_file(dss_filename: str) -> Path:
     filepath = Path(INTERNAL_DSSFILES_FOLDER) / dss_filename
     temp_file = replace_env_vars_in_dss(filepath)
     return temp_file

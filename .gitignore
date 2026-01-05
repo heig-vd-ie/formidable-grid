@@ -188,9 +188,6 @@ spill
 
 .secrets.toml
 
-data/0*
-data/chunks_head
-data/wal
-data/lock
-
+docker/data/*
+docker/data/lock
 logs

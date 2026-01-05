@@ -1,16 +1,14 @@
-from datetime import datetime, timedelta
 import os
-
 import psutil
 from tqdm import tqdm
-
+from datetime import datetime, timedelta
 from konfig import *
-from data_model import ExtraUnitRequest, InputDSSWorker, ProfileData
+from data_model import ElementsSetPoints, FreqCoefficients, GfmKace, ProfileData
 from setup_log import setup_logger
-from opendss_worker.worker import DSSWorker
+from opendss_indirect.worker import DSSWorker
 from helpers import (
     remove_json_files,
-    setup_circuit,
+    setup_opendss_file,
     setup_env_vars,
     to_seconds,
 )
@@ -19,16 +17,25 @@ import ray
 logger = setup_logger(__name__)
 
 
-def run_qsts_powerflow(
+def update_freq(el_sps: ElementsSetPoints, freq_coeff: FreqCoefficients):
+    """Frequency update based on droop and storage capacity"""
+    Δpg = sum(el_sps.pvsystem.p.values()) + sum(el_sps.storage.p.values())
+    Δpd = sum(el_sps.load.p.values())
+    Δf = (Δpg - Δpd) / (
+        freq_coeff.damping * Δpd + sum([1 / r for r in freq_coeff.droop.values()])
+    )
+    return NOMINAL_FREQUENCY + Δf
+
+
+def run_qsts_remotely(
     profiles: ProfileData,
-    extra_unit_request: ExtraUnitRequest = ExtraUnitRequest(),
     dss_filename: str = "Run_QSTS.dss",
+    gfm_kace: GfmKace = GfmKace(),
     from_datetime: datetime = datetime(2025, 1, 1),
     to_datetime: datetime = datetime(2025, 1, 2),
 ):
     remove_json_files()
 
-    basedir = os.getcwd()
     env_vars = {
         "INTERNAL_DSSFILES_FOLDER": INTERNAL_DSSFILES_FOLDER,
         "EXTERNAL_DSSFILES_FOLDER": EXTERNAL_DSSFILES_FOLDER,
@@ -37,8 +44,7 @@ def run_qsts_powerflow(
     }
     setup_env_vars(env_vars)
 
-    temp_file = setup_circuit(dss_filename)
-    input_dss_worker = InputDSSWorker(basedir, temp_file)
+    temp_filepath = setup_opendss_file(dss_filename)
 
     max_parallel = max(1, (psutil.cpu_count() or MAX_CPU_COUNT) - 1)
     logger.info(f"{max_parallel} CPU cores used")
@@ -60,7 +66,7 @@ def run_qsts_powerflow(
         # Launch new workers if below CPU limit
         while len(pending) < max_parallel and next_idx < total_runs:
             ts = timestamps[next_idx]
-            worker = DSSWorker.remote(input_dss_worker, profiles, extra_unit_request)
+            worker = DSSWorker.remote(temp_filepath, profiles, gfm_kace)
             future = worker.solve.remote(ts)
             pending.append(future)
             next_idx += 1
@@ -72,4 +78,4 @@ def run_qsts_powerflow(
             logger.error(f"Worker failed at {timestamps[next_idx-1]}: {e}")
         pbar.update(1)
     pbar.close()
-    os.remove(temp_file)
+    os.remove(temp_filepath)

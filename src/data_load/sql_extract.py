@@ -1,8 +1,6 @@
 from pathlib import Path
-
 import pandas as pd
 import sqlalchemy
-
 from konfig import settings
 from setup_log import setup_logger
 

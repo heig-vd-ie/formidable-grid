@@ -1,8 +1,6 @@
 import os
 from pathlib import Path
-
 import pandas as pd
-
 from konfig import settings, STEP_SIZE
 from data_model import ProfileData
 from setup_log import setup_logger

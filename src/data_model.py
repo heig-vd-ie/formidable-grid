@@ -1,6 +1,3 @@
-from dataclasses import dataclass
-from pathlib import Path
-
 import pandas as pd
 from pydantic import BaseModel
 
@@ -26,19 +23,7 @@ class SimulationResponse(BaseModel):
     vsources: dict[str, PowerFlowResponse]
 
 
-def tuple_to_powerflow(power_tuple: list[float]) -> list[float]:
-    """Convert a tuple of (real_power_kW, reactive_power_kVAr) to a PowerFlow object."""
-    return [
-        power_tuple[0],
-        power_tuple[2],
-        power_tuple[4],
-        power_tuple[1],
-        power_tuple[3],
-        power_tuple[5],
-    ]
-
-
-class ExtraUnitRequest(BaseModel):
+class GfmKace(BaseModel):
     number_of_pvs: int = 5
     pv_kva: float = 10.0
     storage_kva: float = 20.0
@@ -46,14 +31,23 @@ class ExtraUnitRequest(BaseModel):
     seed_number: int = 42
 
 
-@dataclass
-class InputDSSWorker:
-    basedir: str
-    temp_file: Path
-
-
-@dataclass
-class ProfileData:
+class ProfileData(BaseModel):
     pv: pd.DataFrame
     load_p: pd.DataFrame
     load_q: pd.DataFrame
+
+
+class SetPoints(BaseModel):
+    p: dict[str, float]
+    q: dict[str, float]
+
+
+class ElementsSetPoints(BaseModel):
+    load: SetPoints
+    pvsystem: SetPoints
+    storage: SetPoints
+
+
+class FreqCoefficients(BaseModel):
+    droop: dict[str, float]
+    damping: float
