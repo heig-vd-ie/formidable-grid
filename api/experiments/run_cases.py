@@ -6,13 +6,13 @@ import pandas as pd
 if __name__ == "__main__":
     temp_file = (
         Path(__file__).parent.parent.parent
-        / "data/inputs/ExternalDSSfiles/GFM_IEEE123_AmpLimit/Run_IEEE123Bus_GFMDaily_CurrentLimit.dss"
+        / "data/inputs/ExternalDSSfiles/GFM_IEEE123/Run_IEEE123Bus_GFMDaily.dss"
     )
     dss.Command("Clear")
     dss.Command(f'Redirect "{temp_file}"')
     df = pd.read_csv(
         Path(__file__).parent.parent.parent
-        / "data/inputs/ExternalDSSfiles/GFM_IEEE123_AmpLimit/ieee123_Mon_stomonitor_1.csv"
+        / "data/inputs/ExternalDSSfiles/GFM_IEEE123/ieee123_Mon_stomonitor_1.csv"
     )
     import plotly.express as px
 
@@ -24,36 +24,42 @@ if __name__ == "__main__":
         else:
             df = df.sort_values(key_cols)
 
+    is_voltage = False
+
     # Create line plot
     fig = px.line(
         data_frame=df,
         x="t(sec)",
-        y=["P1 (kW)", "P2 (kW)", "P3 (kW)"],
-        render_mode="auto",
+        y=[df.columns[2], df.columns[4], df.columns[6]],
     )
 
-    fig.update_traces(connectgaps=True)
+    fig.update_traces(line=dict(width=6))
 
+    font_size = 44
+    font_family = "Arial"
     # Apply scientific article style with larger fonts
     fig.update_layout(
         template="plotly_white",  # cleaner, publication-style template
         title=dict(
             text="Voltage Measurements Over Time",
-            font=dict(size=22, family="Times New Roman"),
+            font=dict(size=font_size, family=font_family),
         ),
         xaxis=dict(
-            title=dict(text="Time (sec)", font=dict(size=18, family="Times New Roman")),
-            tickfont=dict(size=16, family="Times New Roman"),
+            title=dict(
+                text="Time (sec)", font=dict(size=font_size, family=font_family)
+            ),
+            tickfont=dict(size=font_size, family=font_family),
         ),
         yaxis=dict(
             title=dict(
-                text="Voltage (V)", font=dict(size=18, family="Times New Roman")
+                text="Voltage (V)" if is_voltage else "Power (kW)",
+                font=dict(size=font_size, family=font_family),
             ),
-            tickfont=dict(size=16, family="Times New Roman"),
+            tickfont=dict(size=font_size, family=font_family),
         ),
         legend=dict(
-            title=dict(text="Phase", font=dict(size=16, family="Times New Roman")),
-            font=dict(size=14, family="Times New Roman"),
+            title=dict(text="Phase", font=dict(size=40, family=font_family)),
+            font=dict(size=font_size, family=font_family),
         ),
     )
 
