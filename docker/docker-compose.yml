@@ -1,8 +1,8 @@
 services:
   fg-py-api:
     build:
-      context: .
-      dockerfile: Dockerfile.python
+      context: ..
+      dockerfile: docker/Dockerfile.python
       ssh:
         - default
     container_name: fg-py-api
@@ -34,7 +34,7 @@ services:
       - ./ray:/tmp/ray
       - ./.cache:/app/.cache:rw
       - ./data:/app/data:rw
-      - ./api:/app/src:rw
+      - ./src:/app/src:rw
     stdin_open: true
     tty: true
     restart: unless-stopped
@@ -46,8 +46,8 @@ services:
       - seccomp:unconfined # disable default seccomp restrictions
   fg-grafana:
     build:
-      context: .
-      dockerfile: Dockerfile.grafana
+      context: ..
+      dockerfile: docker/Dockerfile.grafana
     container_name: fg-grafana
     network_mode: host
     environment:
