@@ -6,13 +6,13 @@ import pandas as pd
 if __name__ == "__main__":
     temp_file = (
         Path(__file__).parent.parent.parent
-        / "data/inputs/ExternalDSSfiles/GFM_IEEE123/Run_IEEE123Bus_GFMDaily.dss"
+        / "io/inputs/ExternalDSSfiles/GFM_IEEE123/Run_IEEE123Bus_GFMDaily.dss"
     )
     dss.Command("Clear")
     dss.Command(f'Redirect "{temp_file}"')
     df = pd.read_csv(
         Path(__file__).parent.parent.parent
-        / "data/inputs/ExternalDSSfiles/GFM_IEEE123/ieee123_Mon_stomonitor_1.csv"
+        / "io/inputs/ExternalDSSfiles/GFM_IEEE123/ieee123_Mon_stomonitor_1.csv"
     )
     import plotly.express as px
 
